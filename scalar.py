@@ -22,10 +22,8 @@ def model_antenna(x, t, u, J, B):
 
     return x_dot
 
-# J = 600,000 (kg * m^2)
-J = 600000
-# B = 20,000 (N * m * sec)
-B = 20000
+J = 600000  # [kg * m^2]
+B = 20000   # [N * m * sec]
 
 def model_pendulum(x, t, u, g, l, m):
     """
@@ -75,7 +73,7 @@ def Sim(t_end, t_step, model, x0, args, controller):
             x0 = x[:, i + 1]
     elif controller == "LQR":
         pass
-    return x
+    return x, u
 
 # Initial value and simulation time setting
 x0 = np.array([0, 0.01])
@@ -84,18 +82,18 @@ t_step = 0.1
 t = np.linspace(0, t_end, int(t_end / t_step) + 1)
 
 # PID controller setting
-x_ref = 1 * np.pi / 180  # Rad to Degree
+x_ref = np.deg2rad(1)
 Kp = 15
 Ki = 3
 Kd = 10
 pid = PID(Kp, Ki, Kd, setpoint=x_ref)
 
 # Do simulation
-x = Sim(t_end, t_step, model_pendulum, x0, args=(g, l, m), controller="PID")
+x, u = Sim(t_end, t_step, model_pendulum, x0, args=(g, l, m), controller="PID")
 
 # Plot the results
 plt.figure()
-plt.subplot(2, 1, 1)
+plt.subplot(3, 1, 1)
 plt.plot(t, x[0], 'b-', linewidth=1)
 plt.plot(t, x_ref * np.ones(len(t)), 'k--', linewidth=1)
 plt.xlim([t[0], t[-1]])
@@ -103,12 +101,20 @@ plt.ylim([-0.02, 0.04])
 plt.ylabel('Theta (rad)')
 plt.legend(('Simulation', 'Reference'))
 
-plt.subplot(2, 1, 2)
+plt.subplot(3, 1, 2)
 plt.plot(t, x[1], 'r-', linewidth=1, label='Simulation')
 plt.plot(t, np.zeros(len(t)), 'k--', linewidth=1)
 plt.xlim([t[0], t[-1]])
 plt.ylim([-0.03, 0.03])
 plt.ylabel('Angular Velocity (rad/s)')
+plt.legend()
+
+plt.subplot(3, 1, 3)
+plt.plot(t, u, 'y-', linewidth=1, label='Simulation')
+plt.plot(t, np.zeros(len(t)), 'k--', linewidth=1)
+plt.xlim([t[0], t[-1]])
+plt.ylim([-0.1, 0.4])
+plt.ylabel('Control Input')
 plt.xlabel('Time (sec)')
 plt.legend()
 

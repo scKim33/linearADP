@@ -1,6 +1,6 @@
 # PID Simulation of Pendulum System
 
-![fig1](scalar_result/fig1.png)
+![fig1](scalar_result/fig1.PNG)
 
 System equation : $\ddot{\theta}+\frac{g}{l}\sin\theta=\frac{T_c}{ml^2}$
 
