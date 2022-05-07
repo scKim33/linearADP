@@ -46,10 +46,8 @@ def model_pendulum(x, t, u, g, l, m):
     return x_dot
 
 g = 9.81  # [m / s^2]
-# l = (m)
-l = 20
-# m = (kg)
-m = 0.1
+l = 20  # [m]
+m = 0.1  # [kg]
 
 def Sim(t_end, t_step, model, x0, args, controller):
     """
