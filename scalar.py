@@ -45,8 +45,7 @@ def model_pendulum(x, t, u, g, l, m):
 
     return x_dot
 
-# g = 9.81 (m / s^2)
-g = 9.81
+g = 9.81  # [m / s^2]
 # l = (m)
 l = 20
 # m = (kg)
