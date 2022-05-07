@@ -4,7 +4,8 @@ from simple_pid import PID
 import numpy as np
 from scipy.integrate import odeint
 
-def model_antenna(x, t, u, J, B):
+
+def model_antenna(x, t, u):
     """
     Satellite tracking antenna
     theta: antenna angle from the origin
@@ -15,19 +16,16 @@ def model_antenna(x, t, u, J, B):
     :return: x_dot
     """
 
+    J = 600000  # [kg * m^2]
+    B = 20000  # [N * m * sec]
+
     # state - space specification
-    x_dot = np.zeros(2)
-    x_dot[0] = x[1]
-    x_dot[1] = -B / J * x[1] + u / J
+    x_dot = np.array([x[1], -B / J * x[1] + u / J])
 
     return x_dot
 
-# J = 600,000 (kg * m^2)
-J = 600000
-# B = 20,000 (N * m * sec)
-B = 20000
 
-def model_pendulum(x, t, u, g, l, m):
+def model_pendulum(x, t, u):
     """
     Pendulum system with torque
     theta: Angle of the pendulum from the gravity direction
@@ -38,21 +36,17 @@ def model_pendulum(x, t, u, g, l, m):
     :return: x_dot
     """
 
+    g = 9.81  # [m / s^2]
+    l = 20  # [m]
+    m = 0.1  # [kg]
+
     # state - space specification
-    x_dot = np.zeros(2)
-    x_dot[0] = x[1]
-    x_dot[1] = -g / l * x[0] + u / (m * np.power(l, 2))
+    x_dot = np.array([x[1], -g / l * x[0] + u / (m * np.power(l, 2))])
 
     return x_dot
 
-# g = 9.81 (m / s^2)
-g = 9.81
-# l = (m)
-l = 20
-# m = (kg)
-m = 0.1
 
-def Sim(t_end, t_step, model, x0, args, controller):
+def sim(t_end, t_step, model, x0, controller):
     """
     Linear model simulation
     :param model: State-space form linear model
@@ -64,54 +58,60 @@ def Sim(t_end, t_step, model, x0, args, controller):
     :return: System variable x (vector form)
     """
 
-    t = np.linspace(0, t_end, int(t_end / t_step) + 1)
-    x = np.zeros((len(x0), len(t)))
-    u = np.zeros(len(t))
-    if controller == "PID":
-        for i in range(len(t) - 1):
-            u[i + 1] = pid(x[0, i], dt=t_step)
+    x = x0
+    u = 0
+    x_hist = x
+    u_hist = u
+    for t in tspan:
+        ts = [t, t + t_step]
+        if controller == "PID":
             # simulation condition -> set dt equal to simulation time step
             # if not, pid takes value as real time step
-            ts = [t[i], t[i + 1]]
-            y = odeint(model, x0, ts, args=((u[i + 1],) + args))
-            x[:, i + 1] = y[-1, :]
-            x0 = x[:, i + 1]
-    elif controller == "LQR":
-        pass
-    return x
+            u = pid(x[0], dt=t_step)
+        elif controller == "LQR":
+            pass
+        y = odeint(model, x, ts, args=(u,))
+        x = y[-1, :]
+
+        x_hist = np.vstack((x_hist, x))
+        u_hist = np.vstack((u_hist, u))
+        if t + t_step == t_end:
+            break
+    return x_hist, u_hist
+
 
 # Initial value and simulation time setting
-x0 = np.array([0, 0.01])
+x0 = np.deg2rad([0, 0.1])
+x_ref = np.deg2rad(1)
 t_end = 100
 t_step = 0.1
-t = np.linspace(0, t_end, int(t_end / t_step) + 1)
+tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 
 # PID controller setting
-x_ref = 1 * np.pi / 180  # Rad to Degree
 Kp = 15
 Ki = 3
-Kd = 10
+Kd = 20
 pid = PID(Kp, Ki, Kd, setpoint=x_ref)
 
 # Do simulation
-x = Sim(t_end, t_step, model_pendulum, x0, args=(g, l, m), controller="PID")
+x_hist, _ = sim(t_end, t_step, model_pendulum, x0, controller="PID")
 
 # Plot the results
 plt.figure()
 plt.subplot(2, 1, 1)
-plt.plot(t, x[0], 'b-', linewidth=1)
-plt.plot(t, x_ref * np.ones(len(t)), 'k--', linewidth=1)
-plt.xlim([t[0], t[-1]])
-plt.ylim([-0.02, 0.04])
-plt.ylabel('Theta (rad)')
+plt.plot(tspan, np.rad2deg(x_hist[:, 0]), 'b-', linewidth=1)
+plt.plot(tspan, np.rad2deg(x_ref) * np.ones(len(tspan)), 'k--', linewidth=1)
+plt.xlim([tspan[0], tspan[-1]])
+plt.ylim([-2, 2])
+plt.ylabel('Theta (deg)')
 plt.legend(('Simulation', 'Reference'))
 
 plt.subplot(2, 1, 2)
-plt.plot(t, x[1], 'r-', linewidth=1, label='Simulation')
-plt.plot(t, np.zeros(len(t)), 'k--', linewidth=1)
-plt.xlim([t[0], t[-1]])
-plt.ylim([-0.03, 0.03])
-plt.ylabel('Angular Velocity (rad/s)')
+plt.plot(tspan, np.rad2deg(x_hist[:, 1]), 'r-', linewidth=1, label='Simulation')
+plt.plot(tspan, np.zeros(len(tspan)), 'k--', linewidth=1)
+plt.xlim([tspan[0], tspan[-1]])
+plt.ylim([-2, 2])
+plt.ylabel('Angular Velocity (deg/s)')
 plt.xlabel('Time (sec)')
 plt.legend()
 
