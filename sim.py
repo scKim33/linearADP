@@ -21,15 +21,16 @@ def sim(t_end, t_step, dyn, x0, controller, x_ref):
         if "PID" in controller.keys():
             u = controller["PID"](x[0], dt=t_step)
         elif "LQR" in controller.keys():
-            u = controller["LQR"].dot(x - np.array([x_ref, 0])).squeeze()
+            u = controller["LQR"].dot(x - x_ref.squeeze()).squeeze()
         elif "LQI" in controller.keys():
-            u = controller["LQI"].dot(x - np.array([x_ref, 0, 0])).squeeze()
+            u = controller["LQI"].dot(x - x_ref.squeeze()).squeeze()
         x_hist = np.append(x_hist, x)
         u_hist = np.append(u_hist, u)
         y = odeint(dyn, x, [t, t + t_step], args=(u,))
         x = y[-1, :]
 
         if np.isclose(t, t_end):
+            num_u = np.shape(u)[0]
             break
         t = t + t_step
-    return x_hist, u_hist
+    return x_hist, np.reshape(u_hist, (num_u, -1), order='F')

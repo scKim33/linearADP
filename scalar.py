@@ -1,5 +1,5 @@
 import numpy as np
-
+from scipy.io import loadmat
 
 class model_antenna:
     """
@@ -65,3 +65,13 @@ class model_pendulum:
                           -self.g / self.l * x[0] + u / (self.m * np.power(self.l, 2)),
                           x[0] - self.x_ref])
         return x_dot
+
+class model_f18_lat:
+    def __init__(self):
+        self.mat = loadmat('dat/f18_lin_data.mat')
+        self.A = self.mat['Alon']
+        self.B = self.mat['Blon']
+        self.x_trim = self.mat['x_trim_lon']
+
+    def dynamics(self, x, t, u):
+        return np.dot(self.A, x) + np.dot(self.B, u)
