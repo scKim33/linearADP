@@ -26,6 +26,7 @@ class model_antenna:
         x_dot = np.array([x[1], -self.B / self.J * x[1] + u / self.J])
         return x_dot
 
+
 class model_pendulum:
     """
     Pendulum system with torque
@@ -66,12 +67,25 @@ class model_pendulum:
                           x[0] - self.x_ref])
         return x_dot
 
+
 class model_f18_lat:
-    def __init__(self):
+    def __init__(self, x_ref):
         self.mat = loadmat('dat/f18_lin_data.mat')
         self.A = self.mat['Alon']
         self.B = self.mat['Blon']
+        self.C = np.array([[1, 0, 0, 0]])   # x_reference for velocity
         self.x_trim = self.mat['x_trim_lon']
+        self.x_ref = x_ref
+        self.Aa = np.block([[self.A, np.zeros((np.shape(self.A)[0], np.shape(self.C)[0]))],
+                            [self.C, np.zeros((np.shape(self.C)[0], np.shape(self.C)[0]))]])
+        self.Ba = np.block([[self.B],
+                            [np.zeros((np.shape(self.C)[0], np.shape(self.B)[1]))]])
 
     def dynamics(self, x, t, u):
-        return np.dot(self.A, x) + np.dot(self.B, u)
+        return (np.dot(self.A, x) + np.dot(self.B, u)).squeeze()
+
+    def aug_dynamics(self, x, t, u):
+        aug_x = np.block([[np.reshape(x, (len(x), 1))]])    # x is already augmented at test_scalar.py, so is not required to add zeros
+        aug_x_ref = np.block([[np.zeros((4, 1))],
+                              [self.x_ref]])
+        return np.dot(self.Aa, aug_x).squeeze() + np.dot(self.Ba, u) - aug_x_ref.squeeze()
