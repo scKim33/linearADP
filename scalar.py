@@ -45,13 +45,13 @@ class model_pendulum:
                            [-self.g / self.l, 0]])
         self.B = np.array([[0],
                            [1 / (self.m * np.power(self.l, 2))]])
+        self.C = np.diag([1, 1])
         # augmented system with e_I dynamics
-        self.Aa = np.array([[0, 1, 0],
-                            [-self.g / self.l, 0, 0],
-                            [1, 0, 0]])  # performance output
-        self.Ba = np.array([[0],
-                            [1 / (self.m * np.power(self.l, 2))],
-                            [0]])
+        self.Aa = np.block([[self.A, np.zeros((np.shape(self.A)[0], np.shape(self.C)[0]))],
+                            [self.C, np.zeros((np.shape(self.C)[0], np.shape(self.C)[0]))]])
+        print('Aa shape',np.shape(self.Aa))
+        self.Ba = np.block([[self.B],
+                            [np.zeros((np.shape(self.C)[0], np.shape(self.B)[1]))]])
         self.x_ref = x_ref
 
     def dynamics(self, x, t, u):
@@ -62,10 +62,15 @@ class model_pendulum:
 
     def aug_dynamics(self, x, t, u):
         # state - space specification
-        x_dot = np.array([x[1],
-                          -self.g / self.l * x[0] + u / (self.m * np.power(self.l, 2)),
-                          x[0] - self.x_ref])
-        return x_dot
+        # x_dot = np.array([x[1],
+        #                   -self.g / self.l * x[0] + u / (self.m * np.power(self.l, 2)),
+        #                   x[0] - self.x_ref])
+        # return x_dot
+        aug_x = np.block(
+            [[np.reshape(x, (len(x), 1))]])  # x is already augmented at test_scalar.py, so is not required to add zeros
+        aug_x_ref = np.block([[np.zeros((np.shape(self.A)[0], 1))],
+                              [np.reshape(self.x_ref, (len(self.x_ref), -1))]])  # x_ref shape : (n,) -> (n, 1)
+        return np.dot(self.Aa, aug_x).squeeze() + np.dot(self.Ba, u).squeeze() - aug_x_ref.squeeze()
 
 
 class model_f18_lat:
@@ -73,7 +78,7 @@ class model_f18_lat:
         self.mat = loadmat('dat/f18_lin_data.mat')
         self.A = self.mat['Alon']
         self.B = self.mat['Blon']
-        self.C = np.array([[1, 0, 0, 0]])   # x_reference for velocity
+        self.C = np.diag([1, 1, 1, 1])
         self.x_trim = self.mat['x_trim_lon']
         self.x_ref = x_ref
         self.Aa = np.block([[self.A, np.zeros((np.shape(self.A)[0], np.shape(self.C)[0]))],
@@ -86,6 +91,6 @@ class model_f18_lat:
 
     def aug_dynamics(self, x, t, u):
         aug_x = np.block([[np.reshape(x, (len(x), 1))]])    # x is already augmented at test_scalar.py, so is not required to add zeros
-        aug_x_ref = np.block([[np.zeros((4, 1))],
-                              [self.x_ref]])
-        return np.dot(self.Aa, aug_x).squeeze() + np.dot(self.Ba, u) - aug_x_ref.squeeze()
+        aug_x_ref = np.block([[np.zeros((np.shape(self.A)[0], 1))],
+                              [np.reshape(self.x_ref, (len(self.x_ref), -1))]]) # x_ref shape : (n,) -> (n, 1)
+        return np.dot(self.Aa, aug_x).squeeze() + np.dot(self.Ba, u).squeeze() - aug_x_ref.squeeze()

@@ -27,8 +27,8 @@ def sim(t_end, t_step, dyn, x0, controller, x_ref):
         elif "LQR" in controller.keys():
             u = controller["LQR"].dot(np.reshape(x - x_ref, (num_x, 1))).squeeze()
         elif "LQI" in controller.keys():
-            u = controller["LQI"].dot(np.reshape(x - np.block([x_ref, np.zeros(len(x)-1)]), (num_x, 1))).squeeze() # ex. [x_ref 0 0 0 0] or [0 x_ref 0 0 0]
-        u = np.clip(u, np.deg2rad(-20), np.deg2rad(20))
+            u = controller["LQI"].dot(np.reshape(x - np.block([x_ref, np.zeros(len(x_ref))]), (num_x, 1))).squeeze() #
+        u = np.clip(u, np.deg2rad(-20), np.deg2rad(20)) # constraint of u
         x_hist = np.append(x_hist, x)
         u_hist = np.append(u_hist, u)
         y = odeint(dyn, x, [t, t + t_step], args=(u,))

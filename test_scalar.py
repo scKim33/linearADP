@@ -10,12 +10,12 @@ from scipy.io import loadmat
 
 # Initial value and simulation time setting
 # x0 = np.deg2rad([0, 0.1])
-# x_ref = np.deg2rad(1)
+# x_ref = np.deg2rad([1, 0])
 # model = model_pendulum(x_ref)
 x0 = np.array([190, 0.005, 0.001, 0.001])
-x_ref = loadmat('dat/f18_lin_data.mat')['x_trim_lon'].squeeze()[0]
+x_ref = loadmat('dat/f18_lin_data.mat')['x_trim_lon'].squeeze()
 model = model_f18_lat(x_ref)
-t_end = 100
+t_end = 50
 t_step = 0.1
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 agent = "LQI" # choose a controller from ["PID", "LQR", "LQI"]
@@ -33,10 +33,10 @@ elif agent == "LQR":
     # LQR controller setting
     # Have to adjust the size of Q with same size of dynamic matrix A
     # Have to adjust the size of R with same size of u
-    Q = np.diag([1e5, 1])
-    R = np.diag([1])
-    # Q = np.diag([0.01, 0.01, 0.1, 0.1])
-    # R = np.diag([1e10, 1e10])
+    # Q = np.diag([1e5, 1])
+    # R = np.diag([1])
+    Q = np.diag([1, 1, 1, 1])
+    R = np.diag([1e6, 1e6])
     K, _, _ = lqr(model.A, model.B, Q, R)
     ctrl = {"LQR": -K}
     dyn = model.dynamics
@@ -44,9 +44,9 @@ elif agent == "LQI":
     # LQI controller setting
     # Have to adjust the size of Qa with same size of dynamic matrix Aa
     # Have to adjust the size of Ra with same size of u
-    # Qa = np.diag([100, 10, 100])
+    # Qa = np.diag([100, 10, 100, 100])
     # Ra = np.diag([1])
-    Qa = np.diag([1, 10, 10, 10, 10])
+    Qa = np.diag([1, 10, 10, 10, 10, 10, 10, 10])
     Ra = np.diag([1e6, 1e6])
     Ka, _, _ = lqr(model.Aa, model.Ba, Qa, Ra)
     ctrl = {"LQI": -Ka}
@@ -63,7 +63,7 @@ x_hist = x_hist.reshape(len(tspan), len(x0))
 # plt.figure()
 # plt.subplot(2, 1, 1)
 # plt.plot(tspan, np.rad2deg(x_hist[:, 0]), 'k-', linewidth=1.2)
-# plt.plot(tspan, np.rad2deg(x_ref) * np.ones(len(tspan)), 'r--', linewidth=1.2)
+# plt.plot(tspan, np.rad2deg(x_ref[0]) * np.ones(len(tspan)), 'r--', linewidth=1.2)
 # plt.xlim([tspan[0], tspan[-1]])
 # plt.ylim([-2, 2])
 # plt.grid()
@@ -73,7 +73,7 @@ x_hist = x_hist.reshape(len(tspan), len(x0))
 #
 # plt.subplot(2, 1, 2)
 # plt.plot(tspan, np.rad2deg(x_hist[:, 1]), 'k-', linewidth=1.2, label='State')
-# plt.plot(tspan, np.zeros(len(tspan)), 'r--', linewidth=1.2)
+# plt.plot(tspan, np.rad2deg(x_ref[1]) * np.ones(len(tspan)), 'r--', linewidth=1.2)
 # plt.xlim([tspan[0], tspan[-1]])
 # plt.ylim([-2, 2])
 # plt.grid()
