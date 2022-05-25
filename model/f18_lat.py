@@ -2,7 +2,7 @@ import numpy as np
 from scipy.io import loadmat
 
 
-class f18_lat:
+class f18_lon:
     def __init__(
             self,
             x0=None,
