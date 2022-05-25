@@ -52,7 +52,7 @@ x_hist = x_hist.reshape(len(tspan), len(x0))
 # Plot the results
 plt.figure()
 plt.subplot(2, 2, 1)
-plt.plot(tspan, x_hist[:, 0], 'k-', linewidth=1.2)
+plt.plot(tspan, x_hist[:, 0] + model.x_trim[0], 'k-', linewidth=1.2)
 plt.plot(tspan, model.x_trim[0] * np.ones(len(tspan)), 'r--', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
