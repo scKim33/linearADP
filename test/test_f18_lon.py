@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from simple_pid import PID
 from control import lqr
 
-from model.f18_lat import f18_lat
+from model.f18_lon import f18_lon
 from sim import sim
 
 
@@ -94,7 +94,7 @@ plt.subplot(2, 1, 1)
 plt.plot(tspan, u_hist[0], 'b-', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
-plt.ylabel('Control Input 1 (deg)')
+plt.ylabel('Control Input 1')
 plt.title('Control trajectory')
 
 plt.subplot(2, 1, 2)
