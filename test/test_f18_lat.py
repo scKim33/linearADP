@@ -72,7 +72,7 @@ plt.title('State trajectory')
 plt.legend(('State', 'Reference'))
 
 plt.subplot(2, 2, 3)
-plt.plot(tspan, np.rad2deg(x_hist[:, 2]), 'k-', linewidth=1.2)
+plt.plot(tspan, np.rad2deg(x_hist[:, 2] + model.x_trim[2]), 'k-', linewidth=1.2)
 plt.plot(tspan, np.rad2deg(model.x_trim[2]) * np.ones(len(tspan)), 'r--', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
