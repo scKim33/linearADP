@@ -11,7 +11,7 @@ from sim import sim
 # If needed, fill x0, x_ref, or other matrices
 x0 = None
 x_ref = None
-model = f18_lat(x0=x0, x_ref=x_ref)
+model = f18_lon(x0=x0, x_ref=x_ref)
 t_end = 50
 t_step = 0.1
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
