@@ -1,7 +1,7 @@
 import numpy as np
-from scipy.io import loadmat
 
-class model_antenna:
+
+class antenna:
     """
     Satellite tracking antenna
     theta: antenna angle from the origin
@@ -27,7 +27,7 @@ class model_antenna:
         return x_dot
 
 
-class model_pendulum:
+class pendulum:
     """
     Pendulum system with torque
     theta: Angle of the pendulum from the gravity direction
@@ -37,7 +37,31 @@ class model_pendulum:
     :param l: Pendulum length
     :return: x_dot
     """
-    def __init__(self, x_ref):
+
+    def __init__(
+            self,
+            x0=None,
+            x_ref=None,
+            C=np.diag([1, 1]),
+            Q=np.diag([1e5, 1]),
+            R=np.diag([1]),
+            Qa=np.diag([100, 10, 100, 100]),
+            Ra=np.diag([1])
+    ):
+        # initial x_ref setting from trim condition
+        # x_ref default value : [some random value, 0]
+        if x_ref is not None:
+            self.x_ref = x_ref
+        else:
+            self.x_ref = np.array([np.random.normal(0, np.deg2rad(2)),
+                                   0])
+        noise = np.array([np.random.normal(0, np.deg2rad(0.5)),
+                          np.random.normal(0, np.deg2rad(0.5))])
+        # x0 default value : noise
+        if x0 is not None:
+            self.x0 = x0
+        else:
+            self.x0 = noise
         self.g = 9.81  # [m / s^2]
         self.l = 20  # [m]
         self.m = 0.1  # [kg]
@@ -45,14 +69,16 @@ class model_pendulum:
                            [-self.g / self.l, 0]])
         self.B = np.array([[0],
                            [1 / (self.m * np.power(self.l, 2))]])
-        self.C = np.diag([1, 1])
+        self.C = C
+        self.Q = Q
+        self.R = R
         # augmented system with e_I dynamics
         self.Aa = np.block([[self.A, np.zeros((np.shape(self.A)[0], np.shape(self.C)[0]))],
                             [self.C, np.zeros((np.shape(self.C)[0], np.shape(self.C)[0]))]])
-        print('Aa shape',np.shape(self.Aa))
         self.Ba = np.block([[self.B],
                             [np.zeros((np.shape(self.C)[0], np.shape(self.B)[1]))]])
-        self.x_ref = x_ref
+        self.Qa = Qa
+        self.Ra = Ra
 
     def dynamics(self, x, t, u):
         # state - space specification
@@ -62,35 +88,9 @@ class model_pendulum:
 
     def aug_dynamics(self, x, t, u):
         # state - space specification
-        # x_dot = np.array([x[1],
-        #                   -self.g / self.l * x[0] + u / (self.m * np.power(self.l, 2)),
-        #                   x[0] - self.x_ref])
-        # return x_dot
         aug_x = np.block(
             [[np.reshape(x, (len(x), 1))]])  # x is already augmented at test_scalar.py, so is not required to add zeros
         aug_x_ref = np.block([[np.zeros((np.shape(self.A)[0], 1))],
-                              [np.reshape(self.x_ref, (len(self.x_ref), -1))]])  # x_ref shape : (n,) -> (n, 1)
-        return np.dot(self.Aa, aug_x).squeeze() + np.dot(self.Ba, u).squeeze() - aug_x_ref.squeeze()
-
-
-class model_f18_lat:
-    def __init__(self, x_ref):
-        self.mat = loadmat('dat/f18_lin_data.mat')
-        self.A = self.mat['Alon']
-        self.B = self.mat['Blon']
-        self.C = np.diag([1, 1, 1, 1])
-        self.x_trim = self.mat['x_trim_lon']
-        self.x_ref = x_ref
-        self.Aa = np.block([[self.A, np.zeros((np.shape(self.A)[0], np.shape(self.C)[0]))],
-                            [self.C, np.zeros((np.shape(self.C)[0], np.shape(self.C)[0]))]])
-        self.Ba = np.block([[self.B],
-                            [np.zeros((np.shape(self.C)[0], np.shape(self.B)[1]))]])
-
-    def dynamics(self, x, t, u):
-        return (np.dot(self.A, x) + np.dot(self.B, u)).squeeze()
-
-    def aug_dynamics(self, x, t, u):
-        aug_x = np.block([[np.reshape(x, (len(x), 1))]])    # x is already augmented at test_scalar.py, so is not required to add zeros
-        aug_x_ref = np.block([[np.zeros((np.shape(self.A)[0], 1))],
-                              [np.reshape(self.x_ref, (len(self.x_ref), -1))]]) # x_ref shape : (n,) -> (n, 1)
+                              [np.reshape(self.x_ref,
+                                          (len(self.x_ref), -1))]])  # x_ref shape : (# row of C,) -> (# row of C, 1)
         return np.dot(self.Aa, aug_x).squeeze() + np.dot(self.Ba, u).squeeze() - aug_x_ref.squeeze()
