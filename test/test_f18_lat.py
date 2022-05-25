@@ -81,7 +81,7 @@ plt.xlabel('Time (sec)')
 plt.legend(('State', 'Reference'))
 
 plt.subplot(2, 2, 4)
-plt.plot(tspan, np.rad2deg(x_hist[:, 3]), 'k-', linewidth=1.2)
+plt.plot(tspan, np.rad2deg(x_hist[:, 3] + model.x_trim[3]), 'k-', linewidth=1.2)
 plt.plot(tspan, np.rad2deg(model.x_trim[3]) * np.ones(len(tspan)), 'r--', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
