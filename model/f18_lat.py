@@ -16,10 +16,6 @@ class f18_lon:
         # initial x_ref setting from trim condition
         self.x_trim = loadmat('../dat/f18_lin_data.mat')['x_trim_lon'].squeeze()
         # x_ref default value : x_trim
-        if x_ref is not None:
-            self.x_ref = x_ref
-        else:
-            self.x_ref = self.x_trim
         noise = np.array([np.random.normal(0, 0.1 * self.x_trim[0]),
                           np.random.normal(0, 0.1 * self.x_trim[1]),
                           np.random.normal(0, 1e-3),
@@ -28,7 +24,12 @@ class f18_lon:
         if x0 is not None:
             self.x0 = x0
         else:
-            self.x0 = self.x_trim + noise
+            self.x0 = noise
+            
+        if x_ref is not None:
+            self.x_ref = x_ref
+        else:
+            self.x_ref = np.zeros(self.x0.shape)
         self.mat = loadmat('../dat/f18_lin_data.mat')
         self.A = self.mat['Alon']
         self.B = self.mat['Blon']
