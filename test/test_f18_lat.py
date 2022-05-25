@@ -91,7 +91,7 @@ plt.legend(('State', 'Reference'))
 
 plt.figure()
 plt.subplot(2, 1, 1)
-plt.plot(tspan, np.rad2deg(u_hist[0]), 'b-', linewidth=1.2)
+plt.plot(tspan, u_hist[0], 'b-', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
 plt.ylabel('Control Input 1 (deg)')
