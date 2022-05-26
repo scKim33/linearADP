@@ -14,22 +14,24 @@ class f18_lon:
             Qa=np.diag([1, 100, 10, 100, 1, 100]),
             Ra=np.diag([1e2, 1e6])
     ):
-        # initial x_ref setting from trim condition
+        # trim condition states, control inputs
         self.x_trim = loadmat('../dat/f18_lin_data.mat')['x_trim_lon'].squeeze()
+        self.u_trim = loadmat('../dat/f18_lin_data.mat')['u_trim'].squeeze()[0:2]
         # x_ref default value : [0 0 0 0]
-        noise = np.array([np.random.normal(0, 0.1 * self.x_trim[0]),
-                          np.random.normal(0, 0.1 * self.x_trim[1]),
-                          np.random.normal(0, np.deg2rad(2)),
-                          np.random.normal(0, np.deg2rad(2))])
-        # x0 default value : noise
+        perturbation = np.array([np.random.normal(0, 0.1 * self.x_trim[0]),
+                                 np.random.normal(0, 0.1 * self.x_trim[1]),
+                                 np.random.normal(0, np.deg2rad(2)),
+                                 np.random.normal(0, np.deg2rad(2))])
+        # x0 default value : perturbation
         if x0 is not None:
             self.x0 = x0
         else:
-            self.x0 = noise
+            self.x0 = perturbation
         if x_ref is not None:
             self.x_ref = x_ref
         else:
             self.x_ref = np.zeros(self.x0.shape)
+        # state-space matrices
         self.mat = loadmat('../dat/f18_lin_data.mat')
         self.A = self.mat['Alon']
         self.B = self.mat['Blon']

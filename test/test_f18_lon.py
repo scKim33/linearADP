@@ -14,9 +14,9 @@ u_constraint = np.array([[0, 1],
                          [np.deg2rad(-20), np.deg2rad(20)]])
 model = f18_lon(x0=x0, x_ref=x_ref)
 t_end = 50
-t_step = 0.1
+t_step = 0.02
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
-agent = "LQR" # choose a controller from ["PID", "LQR", "LQI"]
+agent = "LQI" # choose a controller from ["PID", "LQR", "LQI"]
 
 if agent == "PID":
     # PID controller setting
@@ -90,14 +90,16 @@ plt.legend(('State', 'Reference'))
 
 plt.figure()
 plt.subplot(2, 1, 1)
-plt.plot(tspan, u_hist[0], 'b-', linewidth=1.2)
+plt.plot(tspan, u_hist[0] + model.u_trim[0], 'b-', linewidth=1.2)
+plt.plot(tspan, model.u_trim[0] * np.ones(len(tspan)), 'r--', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
 plt.ylabel(r'$\delta_T$')
 plt.title('Control trajectory')
 
 plt.subplot(2, 1, 2)
-plt.plot(tspan, np.rad2deg(u_hist[1]), 'b-', linewidth=1.2)
+plt.plot(tspan, np.rad2deg(u_hist[1] + model.u_trim[1]), 'b-', linewidth=1.2)
+plt.plot(tspan, np.rad2deg(model.u_trim[1]) * np.ones(len(tspan)), 'r--', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
 plt.ylabel(r'$\delta_e$ (deg)')
