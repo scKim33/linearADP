@@ -10,6 +10,7 @@ from sim import sim
 # If needed, fill x0, x_ref, or other matrices
 x0 = None
 x_ref = None
+u_constraint = np.array([[-20, 20]])
 model = pendulum(x0=x0, x_ref=x_ref)
 t_end = 50
 t_step = 0.1
@@ -46,7 +47,7 @@ else:
     raise ValueError("Invalid agent name")
 
 # Do simulation
-x_hist, u_hist = sim(t_end, t_step, model, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=(-1, 1))
+x_hist, u_hist = sim(t_end, t_step, model, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint)
 x_hist = x_hist.reshape(len(tspan), len(x0))
 
 # Plot the results

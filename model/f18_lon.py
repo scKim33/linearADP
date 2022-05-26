@@ -10,17 +10,17 @@ class f18_lon:
             C=np.array(([1, 0, 0, 0],
                         [0, 0, 0, 1])),
             Q=np.diag([1, 100, 10, 100]),
-            R=np.diag([1e6, 1e6]),
+            R=np.diag([1e2, 1e6]),
             Qa=np.diag([1, 100, 10, 100, 1, 100]),
-            Ra=np.diag([1e6, 1e6])
+            Ra=np.diag([1e2, 1e6])
     ):
         # initial x_ref setting from trim condition
         self.x_trim = loadmat('../dat/f18_lin_data.mat')['x_trim_lon'].squeeze()
         # x_ref default value : [0 0 0 0]
         noise = np.array([np.random.normal(0, 0.1 * self.x_trim[0]),
                           np.random.normal(0, 0.1 * self.x_trim[1]),
-                          np.random.normal(0, 1e-3),
-                          np.random.normal(0, 1e-3)])
+                          np.random.normal(0, np.deg2rad(2)),
+                          np.random.normal(0, np.deg2rad(2))])
         # x0 default value : noise
         if x0 is not None:
             self.x0 = x0

@@ -10,6 +10,8 @@ from sim import sim
 # If needed, fill x0, x_ref, or other matrices
 x0 = None
 x_ref = None
+u_constraint = np.array([[0, 1],
+                         [np.deg2rad(-20), np.deg2rad(20)]])
 model = f18_lon(x0=x0, x_ref=x_ref)
 t_end = 50
 t_step = 0.1
@@ -31,8 +33,8 @@ elif agent == "LQR":
     R = model.R
     K, _, _ = lqr(model.A, model.B, Q, R)
     ctrl = {"LQR": -K}
-    dyn = model.dynamics
     x0 = model.x0
+    dyn = model.dynamics
 elif agent == "LQI":
     # LQI controller setting
     Qa = model.Qa
@@ -45,7 +47,7 @@ else:
     raise ValueError("Invalid agent name")
 
 # Do simulation
-x_hist, u_hist = sim(t_end, t_step, model, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=(-20, 20))
+x_hist, u_hist = sim(t_end, t_step, model, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint)
 x_hist = x_hist.reshape(len(tspan), len(x0))
 
 # Plot the results
