@@ -25,7 +25,6 @@ class f18_lon:
             self.x0 = x0
         else:
             self.x0 = noise
-            
         if x_ref is not None:
             self.x_ref = x_ref
         else:
