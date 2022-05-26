@@ -7,7 +7,7 @@ class f18_lon:
             self,
             x0=None,
             x_ref=None,
-            C=np.diag([1, 0, 0, 1]),
+            C=np.array(([1, 0, 0, 0], [0, 0, 0, 1])),
             Q=np.diag([1, 100, 10, 100]),
             R=np.diag([1e6, 1e6]),
             Qa=np.diag([1, 100, 10, 100, 1, 0, 0, 1]),
