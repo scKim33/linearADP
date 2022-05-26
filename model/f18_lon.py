@@ -7,7 +7,8 @@ class f18_lon:
             self,
             x0=None,
             x_ref=None,
-            C=np.array(([1, 0, 0, 0], [0, 0, 0, 1])),
+            C=np.array(([1, 0, 0, 0],
+                        [0, 0, 0, 1])),
             Q=np.diag([1, 100, 10, 100]),
             R=np.diag([1e6, 1e6]),
             Qa=np.diag([1, 100, 10, 100, 1, 100]),
@@ -15,12 +16,12 @@ class f18_lon:
     ):
         # initial x_ref setting from trim condition
         self.x_trim = loadmat('../dat/f18_lin_data.mat')['x_trim_lon'].squeeze()
-        # x_ref default value : x_trim
+        # x_ref default value : [0 0 0 0]
         noise = np.array([np.random.normal(0, 0.1 * self.x_trim[0]),
                           np.random.normal(0, 0.1 * self.x_trim[1]),
                           np.random.normal(0, 1e-3),
                           np.random.normal(0, 1e-3)])
-        # x0 default value : x_trim + noise
+        # x0 default value : noise
         if x0 is not None:
             self.x0 = x0
         else:
@@ -49,6 +50,6 @@ class f18_lon:
         aug_x = np.block(
             [[np.reshape(x, (len(x), 1))]])  # x is already augmented at test_scalar.py, so is not required to add zeros
         aug_x_ref = np.block([[np.zeros((np.shape(self.A)[0], 1))],
-                              [np.reshape(self.x_ref,
-                                          (len(self.x_ref), -1))]])  # x_ref shape : (# row of C,) -> (# row of C, 1)
+                              [np.reshape(self.C @ self.x_ref,
+                                          (np.shape(self.C)[0], 1))]])  # x_ref shape : (# row of C,) -> (# row of C, 1)
         return np.dot(self.Aa, aug_x).squeeze() + np.dot(self.Ba, u).squeeze() - aug_x_ref.squeeze()

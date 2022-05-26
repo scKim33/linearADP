@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import odeint
 
 
-def sim(t_end, t_step, dyn, x0, controller, x_ref, clipping=None):
+def sim(t_end, t_step, model, dyn, x0, controller, x_ref, clipping=None):
     """
     Model simulation
     :param t_end: Time at which simulation terminates
@@ -28,7 +28,7 @@ def sim(t_end, t_step, dyn, x0, controller, x_ref, clipping=None):
         elif "LQR" in controller.keys():
             u = controller["LQR"].dot(np.reshape(x - x_ref, (num_x, 1))).squeeze()
         elif "LQI" in controller.keys():
-            u = controller["LQI"].dot(np.reshape(x - np.block([x_ref, np.zeros(len(x_ref))]), (num_x, 1))).squeeze()
+            u = controller["LQI"].dot(np.reshape(x - np.block([x_ref, np.zeros(model.C.shape[0])]), (num_x, 1))).squeeze()
         # If we want to give a constraint of u
         if clipping is not None:
             u = np.clip(u, clipping[0], clipping[1])  # constraint of u

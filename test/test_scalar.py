@@ -14,7 +14,7 @@ model = pendulum(x0=x0, x_ref=x_ref)
 t_end = 50
 t_step = 0.1
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
-agent = "LQI" # choose a controller from ["PID", "LQR", "LQI"]
+agent = "LQR" # choose a controller from ["PID", "LQR", "LQI"]
 
 if agent == "PID":
     # PID controller setting
@@ -40,13 +40,13 @@ elif agent == "LQI":
     Ra = model.Ra
     Ka, _, _ = lqr(model.Aa, model.Ba, Qa, Ra)
     ctrl = {"LQI": -Ka}
-    x0 = np.append(model.x0, -model.x_ref) # x0 dim : (n,), x_ref dim : (# of C matrix row,) -> x0 dim : (n + C mat row,)
+    x0 = np.append(model.x0, - model.C @ model.x_ref) # x0 dim : (n,), x_ref dim : (# of C matrix row,) -> x0 dim : (n + C mat row,)
     dyn = model.aug_dynamics
 else:
     raise ValueError("Invalid agent name")
 
 # Do simulation
-x_hist, u_hist = sim(t_end, t_step, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=(-1, 1))
+x_hist, u_hist = sim(t_end, t_step, model, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=(-1, 1))
 x_hist = x_hist.reshape(len(tspan), len(x0))
 
 # Plot the results
@@ -57,7 +57,7 @@ plt.plot(tspan, np.rad2deg(model.x_ref[0]) * np.ones(len(tspan)), 'r--', linewid
 plt.xlim([tspan[0], tspan[-1]])
 plt.ylim([-2 * np.rad2deg(np.abs(model.x_ref[0])), 2 * np.rad2deg(np.abs(model.x_ref[0]))]) # x_ref changes at default setting
 plt.grid()
-plt.ylabel('Theta (deg)')
+plt.ylabel(r'$\theta$ (deg)')
 plt.title('State trajectory')
 plt.legend(('State', 'Reference'))
 
@@ -67,7 +67,7 @@ plt.plot(tspan, np.rad2deg(model.x_ref[1]) * np.ones(len(tspan)), 'r--', linewid
 plt.xlim([tspan[0], tspan[-1]])
 plt.ylim([-2, 2])
 plt.grid()
-plt.ylabel('Angular Velocity (deg/s)')
+plt.ylabel(r'$\omega$ (deg / s)')
 plt.xlabel('Time (sec)')
 plt.legend()
 

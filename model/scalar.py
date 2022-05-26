@@ -87,10 +87,9 @@ class pendulum:
         return x_dot
 
     def aug_dynamics(self, x, t, u):
-        # state - space specification
         aug_x = np.block(
             [[np.reshape(x, (len(x), 1))]])  # x is already augmented at test_scalar.py, so is not required to add zeros
         aug_x_ref = np.block([[np.zeros((np.shape(self.A)[0], 1))],
-                              [np.reshape(self.x_ref,
-                                          (len(self.x_ref), -1))]])  # x_ref shape : (# row of C,) -> (# row of C, 1)
+                              [np.reshape(self.C @ self.x_ref,
+                                          (np.shape(self.C)[0], 1))]])  # x_ref shape : (# row of C,) -> (# row of C, 1)
         return np.dot(self.Aa, aug_x).squeeze() + np.dot(self.Ba, u).squeeze() - aug_x_ref.squeeze()
