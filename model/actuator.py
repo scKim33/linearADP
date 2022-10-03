@@ -8,12 +8,12 @@ class Actuator:
                            [self.w_n ** 2, -2 * self.w_n * self.damping_ratio]]) # system matrix
         self.B = np.array([[0],
                            [self.w_n ** 2]])
-    def dynamics(self, u_act, t, u_ctrl):
+    def dynamics(self, y, t, y_c):
         '''
-        :param u_act: control input after passing the actuator [y y_dot].T
+        :param y: control input after passing the actuator [y y_dot].T
         :param t: simulation time
-        :param u_ctrl: control input before passing the actuator
+        :param y_c: control input before passing the actuator
         :return: derivative of y, i.e., [y_dot y_ddot].T
         '''
-        return (np.dot(self.A, u_act) + np.dot(self.B, u_ctrl).squeeze()).squeeze()
+        return (np.dot(self.A, y) + np.dot(self.B, y_c)).squeeze()
 

@@ -4,7 +4,6 @@ from simple_pid import PID
 from control import lqr
 
 from model.f18_lon import f18_lon
-from model.actuator import Actuator
 from sim import sim
 
 # Initial value and simulation time setting
@@ -14,7 +13,6 @@ x_ref = None
 u_constraint = np.array([[0, 1],
                          [np.deg2rad(-20), np.deg2rad(20)]])
 model = f18_lon(x0=x0, x_ref=x_ref)
-actuator = Actuator()
 t_end = 50
 t_step = 0.02
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
@@ -49,7 +47,7 @@ else:
     raise ValueError("Invalid agent name")
 
 # Do simulation
-x_hist, u_hist = sim(t_end, t_step, model, actuator, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint)
+x_hist, u_hist = sim(t_end, t_step, model, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint)
 x_hist = x_hist.reshape(len(tspan), len(x0))
 
 # Plot the results
