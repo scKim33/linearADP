@@ -76,7 +76,7 @@ plt.figure()
 plt.plot(tspan, u_hist, 'b-', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
-plt.ylabel('Torque')
+plt.ylabel(r'Torque (N$\cdot$m)')
 plt.title('Control trajectory')
 
 plt.show()
