@@ -5,20 +5,21 @@ from control import lqr
 
 from model.f18_lon import f18_lon
 from model.actuator import Actuator
-from sim import sim
+from sim.sim import sim
+from sim.sim_IRL import sim_IRL
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
 x0 = None
 x_ref = None
-u_constraint = np.array([[0, 1],
-                         [np.deg2rad(-20), np.deg2rad(20)]])
 model = f18_lon(x0=x0, x_ref=x_ref)
+u_constraint = np.array([[0 - model.u_trim[0], 1 - model.u_trim[0]],
+                         [np.deg2rad(-20), np.deg2rad(20)]])
 actuator = Actuator()
 t_end = 50
 t_step = 0.02
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
-agent = "LQI" # choose a controller from ["PID", "LQR", "LQI"]
+agent = "IRL" # choose a controller from ["PID", "LQR", "LQI"]
 
 if agent == "PID":
     # PID controller setting
@@ -45,12 +46,20 @@ elif agent == "LQI":
     ctrl = {"LQI": -Ka}
     x0 = np.append(model.x0, - model.C @ model.x_ref) # x0 dim : (n,), x_ref dim : (# of C matrix row,) -> x0 dim : (n + C mat row,)
     dyn = model.aug_dynamics
+elif agent == "IRL":
+    # IRL controller setting
+    Q = model.Q
+    R = model.R
+    x0 = model.x0
+    dyn = model.dynamics
 else:
     raise ValueError("Invalid agent name")
 
 # Do simulation
-x_hist, u_hist = sim(t_end, t_step, model, actuator, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint)
-x_hist = x_hist.reshape(len(tspan), len(x0))
+if agent == "IRL":
+    x_hist, u_hist, w_hist = sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref=model.x_ref, clipping=u_constraint)
+else:
+    x_hist, u_hist = sim(t_end, t_step, model, actuator, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint)
 
 # Plot the results
 plt.figure()
@@ -92,7 +101,7 @@ plt.legend(('State', 'Reference'))
 
 plt.figure()
 plt.subplot(2, 1, 1)
-plt.plot(tspan, u_hist[0] + model.u_trim[0], 'b-', linewidth=1.2)
+plt.plot(tspan, u_hist[:, 0] + model.u_trim[0], 'b-', linewidth=1.2)
 plt.plot(tspan, model.u_trim[0] * np.ones(len(tspan)), 'r--', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
@@ -100,10 +109,19 @@ plt.ylabel(r'$\delta_T$')
 plt.title('Control trajectory')
 
 plt.subplot(2, 1, 2)
-plt.plot(tspan, np.rad2deg(u_hist[1] + model.u_trim[1]), 'b-', linewidth=1.2)
+plt.plot(tspan, np.rad2deg(u_hist[:, 1] + model.u_trim[1]), 'b-', linewidth=1.2)
 plt.plot(tspan, np.rad2deg(model.u_trim[1]) * np.ones(len(tspan)), 'r--', linewidth=1.2)
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
 plt.ylabel(r'$\delta_e$ (deg)')
 
+if agent == "IRL":
+    plt.figure()
+    plt.plot(tspan, w_hist[:, 0], 'b--', linewidth=1.2)
+    plt.plot(tspan, w_hist[:, 1], 'r--', linewidth=1.2)
+    plt.plot(tspan, w_hist[:, 2], 'g--', linewidth=1.2)
+    plt.plot(tspan, w_hist[:, 3], 'k--', linewidth=1.2)
+    plt.xlim([tspan[0], tspan[-1]])
+    plt.grid()
+    plt.ylabel(r'Weight of Value Function')
 plt.show()

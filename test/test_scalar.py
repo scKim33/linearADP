@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 from simple_pid import PID
 from control import lqr
 
-from model.scalar import antenna, pendulum
-from sim import sim
+from model.scalar import pendulum
+from sim.sim import sim
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
