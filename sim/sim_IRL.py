@@ -23,7 +23,7 @@ def dV(w, x):
                    ])
     return dv
 
-def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_scalar=False):
+def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_scalar=False, method=None):
 
     """
     Model simulation
@@ -52,14 +52,14 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
     while True:
         # breakpoint()
         u_ctrl = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dV(w, x)   # From the result of policy/value iteration : u = -0.5@R^-1@B.T@nabla(V)
-
+        '''
         if u_act is None:
             u_act = np.array([u_ctrl[0], 0])   # set u_actuator initial condition at first time step
         u_act = odeint(actuator.dynamics, u_act, [t, t + t_step], args=(u_ctrl[0],))
         u_act = u_act[-1, :]    # take u_act at (t + t_step)
 
         u_ctrl[0] = u_act[0]  # only considering throttle actuator effect
-
+        '''
         # If we want to give a constraint of u
         if clipping is not None:
             if u_ctrl.shape == ():   # for scalar u
@@ -81,16 +81,19 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
         X = None
         R = []
         t_ = t  # define t_ used in for loop
-        t_step_ = 0.01
+        t_step_ = 0.02
         x_ = x  # define x_ used in for loop
         r = 0
         u_act_ = u_act
+        PI_ = None
         for i in range(len(PI(x))): # len(PI(x)) equations are needed to find least square solutions
             # finding u after n * t_step
             u_ctrl_ = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dV(w, x_)
+            '''
             u_act_ = odeint(actuator.dynamics, u_act_, [t_, t_ + t_step_], args=(u_ctrl_[0],))
             u_act_ = u_act_[-1, :]
             u_ctrl_[0] = u_act_[0]
+            '''
             if clipping is not None:
                 if u_ctrl_.shape == ():
                     u_is_scalar = True
@@ -100,13 +103,24 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
             if u_is_scalar:
                 u_ctrl_ = np.asscalar(u_ctrl_)
             y_ = odeint(dyn, x_, [t_, t_ + t_step_], args=(u_ctrl_,))
+            x_old = x_
             x_ = y_[-1, :]
 
-            r = r + t_step_ * (x_.T @ model.Q @ x_ + u_ctrl_.T @ model.R @ u_ctrl_)  # integral of xQx+uRu
-            X = np.vstack((X, PI(x) - PI(x_))) if X is not None else PI(x) - PI(x_) # set of basis
-            R = np.append(R, r)  # set of integral(xQx+uRu)
+            if method == "PI":
+                r = r + t_step_ * (x_.T @ model.Q @ x_ + u_ctrl_.T @ model.R @ u_ctrl_)  # integral of xQx+uRu
+                X = np.vstack((X, PI(x) - PI(x_))) if X is not None else PI(x) - PI(x_) # set of basis
+                R = np.append(R, r)  # set of integral(xQx+uRu)
+            elif method == "VI":
+                r = t_step_ * (x_.T @ model.Q @ x_ + u_ctrl_.T @ model.R @ u_ctrl_)
+                PI_ = np.vstack((PI_, PI(x_))) if PI_ is not None else PI(x_)
+                X = np.vstack((X, PI(x_old))) if X is not None else PI(x_old)
+                R = np.append(R, r)
             t_ = t_ + t_step_
-        w = np.linalg.inv(X.T @ X) @ X.T @ R
+        print(np.linalg.cond(X.T@X))
+        if method == "PI":
+            w = np.linalg.inv(X.T @ X) @ X.T @ R
+        elif method == "VI":
+            w = np.linalg.inv(X.T @ X) @ X.T @ (R + PI_ @ w)
 
         if np.isclose(t, t_end):
             w_hist = w_hist.reshape(-1, len(w))

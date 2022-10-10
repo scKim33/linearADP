@@ -52,12 +52,13 @@ elif agent == "IRL":
     R = model.R
     x0 = model.x0
     dyn = model.dynamics
+    method = "VI"
 else:
     raise ValueError("Invalid agent name")
 
 # Do simulation
 if agent == "IRL":
-    x_hist, u_hist, w_hist = sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref=model.x_ref, clipping=u_constraint)
+    x_hist, u_hist, w_hist = sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, method=method)
 else:
     x_hist, u_hist = sim(t_end, t_step, model, actuator, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint)
 
