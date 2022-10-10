@@ -4,6 +4,7 @@ from model.actuator import Actuator
 
 
 def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=None, u_is_scalar=False):
+
     """
     Model simulation
     :param u_is_scalar: if u is scalar, dimension conversion is needed for clipping u
