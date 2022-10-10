@@ -49,9 +49,6 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
     x_hist = []
     u_hist = []
     w_hist = []
-    count = 0
-    X = None
-    R = []
     while True:
         # breakpoint()
         u_ctrl = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dV(w, x)   # From the result of policy/value iteration : u = -0.5@R^-1@B.T@nabla(V)
@@ -73,8 +70,6 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
         if u_is_scalar:  # for scalar u
             u_ctrl = np.asscalar(u_ctrl)
 
-        r = t_step * (x.T @ model.Q @ x + u_ctrl.T @ model.R @ u_ctrl)  # integral of xQx+uRu
-
         x_hist = np.append(x_hist, x)
         u_hist = np.append(u_hist, u_ctrl)
         w_hist = np.append(w_hist, w)
@@ -82,15 +77,36 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
         y = odeint(dyn, x, [t, t + t_step], args=(u_ctrl,))
         x = y[-1, :]    # take x at (t + t_step)
 
-        count += 1
-        R = np.append(R, r) # set of integral(xQx+uRu)
-        X = np.vstack((X, PI(x))) if X is not None else PI(x) # set of basis
-        if count >= len(PI(x)):
-            if True:    #np.linalg.cond(X.T@X) < 1e3: # weight update after some x updates
-                w = np.linalg.inv(X.T @ X) @ X.T @ (R + X @ w)
-                count = 0
-                X = None
-                R = []
+        # Policy Improvement to update w
+        X = None
+        R = []
+        t_ = t  # define t_ used in for loop
+        t_step_ = 0.01
+        x_ = x  # define x_ used in for loop
+        r = 0
+        u_act_ = u_act
+        for i in range(len(PI(x))): # len(PI(x)) equations are needed to find least square solutions
+            # finding u after n * t_step
+            u_ctrl_ = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dV(w, x_)
+            u_act_ = odeint(actuator.dynamics, u_act_, [t_, t_ + t_step_], args=(u_ctrl_[0],))
+            u_act_ = u_act_[-1, :]
+            u_ctrl_[0] = u_act_[0]
+            if clipping is not None:
+                if u_ctrl_.shape == ():
+                    u_is_scalar = True
+                    u_ctrl_ = np.reshape(u_ctrl_, (1,))
+                for u_i, constraint, j in zip(u_ctrl_, clipping, range(num_u)):
+                    u_ctrl_[j] = np.clip(u_i, constraint[0], constraint[1])
+            if u_is_scalar:
+                u_ctrl_ = np.asscalar(u_ctrl_)
+            y_ = odeint(dyn, x_, [t_, t_ + t_step_], args=(u_ctrl_,))
+            x_ = y_[-1, :]
+
+            r = r + t_step_ * (x_.T @ model.Q @ x_ + u_ctrl_.T @ model.R @ u_ctrl_)  # integral of xQx+uRu
+            X = np.vstack((X, PI(x) - PI(x_))) if X is not None else PI(x) - PI(x_) # set of basis
+            R = np.append(R, r)  # set of integral(xQx+uRu)
+            t_ = t_ + t_step_
+        w = np.linalg.inv(X.T @ X) @ X.T @ R
 
         if np.isclose(t, t_end):
             w_hist = w_hist.reshape(-1, len(w))
