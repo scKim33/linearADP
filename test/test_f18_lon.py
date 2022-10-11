@@ -10,7 +10,8 @@ from sim.sim_IRL import sim_IRL
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
-x0 = None
+x0 = np.array([177.02, np.deg2rad(3.431), np.deg2rad(-1.09*1e-2), np.deg2rad(5.8*1e-3)]) - f18_lon().x_trim # x_0 setting in progress report 1
+# x0 = None
 x_ref = None
 model = f18_lon(x0=x0, x_ref=x_ref)
 u_constraint = np.array([[0 - model.u_trim[0], 1 - model.u_trim[0]],
@@ -19,7 +20,7 @@ actuator = Actuator()
 t_end = 50
 t_step = 0.02
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
-agent = "IRL" # choose a controller from ["PID", "LQR", "LQI"]
+agent = "LQI" # choose a controller from ["PID", "LQR", "LQI"]
 
 if agent == "PID":
     # PID controller setting
@@ -52,7 +53,7 @@ elif agent == "IRL":
     R = model.R
     x0 = model.x0
     dyn = model.dynamics
-    method = "VI"
+    method = "PI"
 else:
     raise ValueError("Invalid agent name")
 

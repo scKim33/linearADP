@@ -35,8 +35,7 @@ def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=Non
             u_ctrl = controller["LQR"].dot(np.reshape(x - x_ref, (num_x, 1))).squeeze()
         elif "LQI" in controller.keys():
             u_ctrl = controller["LQI"].dot(np.reshape(x - np.block([x_ref, np.zeros(model.C.shape[0])]), (num_x, 1))).squeeze()
-        if u_act is None:
-            u_act = np.array([u_ctrl[0], 0])   # set u_actuator initial condition at first time step
+        u_act = u_ctrl
         u_act = odeint(actuator.dynamics, u_act, [t, t + t_step], args=(u_ctrl[0],))
         u_act = u_act[-1, :]    # take u_act at (t + t_step)
         u_ctrl[0] = u_act[0]    # only considering throttle actuator effect

@@ -50,16 +50,12 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
     u_hist = []
     w_hist = []
     while True:
-        # breakpoint()
         u_ctrl = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dV(w, x)   # From the result of policy/value iteration : u = -0.5@R^-1@B.T@nabla(V)
-        '''
-        if u_act is None:
-            u_act = np.array([u_ctrl[0], 0])   # set u_actuator initial condition at first time step
+        u_act = u_ctrl
         u_act = odeint(actuator.dynamics, u_act, [t, t + t_step], args=(u_ctrl[0],))
         u_act = u_act[-1, :]    # take u_act at (t + t_step)
 
         u_ctrl[0] = u_act[0]  # only considering throttle actuator effect
-        '''
         # If we want to give a constraint of u
         if clipping is not None:
             if u_ctrl.shape == ():   # for scalar u
@@ -89,11 +85,11 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
         for i in range(len(PI(x))): # len(PI(x)) equations are needed to find least square solutions
             # finding u after n * t_step
             u_ctrl_ = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dV(w, x_)
-            '''
+            u_act_ = u_ctrl_
             u_act_ = odeint(actuator.dynamics, u_act_, [t_, t_ + t_step_], args=(u_ctrl_[0],))
             u_act_ = u_act_[-1, :]
             u_ctrl_[0] = u_act_[0]
-            '''
+
             if clipping is not None:
                 if u_ctrl_.shape == ():
                     u_is_scalar = True
@@ -116,7 +112,6 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
                 X = np.vstack((X, PI(x_old))) if X is not None else PI(x_old)
                 R = np.append(R, r)
             t_ = t_ + t_step_
-        print(np.linalg.cond(X.T@X))
         if method == "PI":
             w = np.linalg.inv(X.T @ X) @ X.T @ R
         elif method == "VI":
