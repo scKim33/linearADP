@@ -20,7 +20,7 @@ actuator = Actuator()
 t_end = 50
 t_step = 0.02
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
-agent = "LQI" # choose a controller from ["PID", "LQR", "LQI"]
+agent = "LQR" # choose a controller from ["PID", "LQR", "LQI"]
 
 if agent == "PID":
     # PID controller setting
@@ -59,9 +59,9 @@ else:
 
 # Do simulation
 if agent == "IRL":
-    x_hist, u_hist, w_hist = sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, method=method)
+    x_hist, u_hist, w_hist = sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, method=method, actuator_status=False)
 else:
-    x_hist, u_hist = sim(t_end, t_step, model, actuator, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint)
+    x_hist, u_hist = sim(t_end, t_step, model, actuator, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint, actuator_status=True)
 
 # Plot the results
 plt.figure()
@@ -119,16 +119,10 @@ plt.ylabel(r'$\delta_e$ (deg)')
 
 if agent == "IRL":
     plt.figure()
-    plt.plot(tspan, w_hist[:, 0], '--', linewidth=1.2)
-    plt.plot(tspan, w_hist[:, 1], '--', linewidth=1.2)
-    plt.plot(tspan, w_hist[:, 2], '--', linewidth=1.2)
-    plt.plot(tspan, w_hist[:, 3], '--', linewidth=1.2)
-    plt.plot(tspan, w_hist[:, 4], '--', linewidth=1.2)
-    plt.plot(tspan, w_hist[:, 5], '--', linewidth=1.2)
-    plt.plot(tspan, w_hist[:, 6], '--', linewidth=1.2)
-    plt.plot(tspan, w_hist[:, 7], '--', linewidth=1.2)
-    plt.legend(('w(0)', 'w(1)', 'w(2)', 'w(3)', 'w(4)', 'w(5)', 'w(6)', 'w(7)'))
+    for i in range(len(w_hist[0, :])):
+        plt.plot(tspan, w_hist[:, i], 'x', linewidth=1.2, label='w[{}]'.format(i))
     plt.xlim([tspan[0], tspan[-1]])
+    plt.legend()
     plt.grid()
     plt.title(r'Weight of Value Function')
 plt.show()

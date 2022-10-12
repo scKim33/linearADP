@@ -14,6 +14,7 @@ class f18_lon:
             Qa=np.diag([1, 100, 10, 100, 1, 100]),
             Ra=np.diag([1e2, 1e6])
     ):
+        self.name = 'f18_lon'
         # trim condition states, control inputs
         self.x_trim = loadmat('../dat/f18_lin_data.mat')['x_trim_lon'].squeeze()
         self.u_trim = loadmat('../dat/f18_lin_data.mat')['u_trim'].squeeze()[0:2]

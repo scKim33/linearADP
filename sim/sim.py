@@ -3,7 +3,7 @@ from scipy.integrate import odeint
 from model.actuator import Actuator
 
 
-def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=None, u_is_scalar=False):
+def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=None, u_is_scalar=False, actuator_status=False):
 
     """
     Model simulation
@@ -32,13 +32,14 @@ def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=Non
         if "PID" in controller.keys():
             u_ctrl = controller["PID"](x[0], dt=t_step)
         elif "LQR" in controller.keys():
-            u_ctrl = controller["LQR"].dot(np.reshape(x - x_ref, (num_x, 1))).squeeze()
+            u_ctrl = controller["LQR"].dot(np.reshape(x - x_ref, (num_x, 1))).reshape(num_u,)
         elif "LQI" in controller.keys():
-            u_ctrl = controller["LQI"].dot(np.reshape(x - np.block([x_ref, np.zeros(model.C.shape[0])]), (num_x, 1))).squeeze()
-        u_act = u_ctrl
-        u_act = odeint(actuator.dynamics, u_act, [t, t + t_step], args=(u_ctrl[0],))
-        u_act = u_act[-1, :]    # take u_act at (t + t_step)
-        u_ctrl[0] = u_act[0]    # only considering throttle actuator effect
+            u_ctrl = controller["LQI"].dot(np.reshape(x - np.block([x_ref, np.zeros(model.C.shape[0])]), (num_x, 1))).reshape(num_u,)
+        if actuator_status:
+            u_act = np.array([u_ctrl[0], 0]) # u_act, u_act_dot in systems of ODE
+            u_act = odeint(actuator.dynamics, u_act, [t, t + 0.1], args=(u_ctrl[0],))
+            u_act = u_act[-1, :]    # take u_act at (t + t_step)
+            u_ctrl[0] = u_act[0]    # only considering throttle actuator effect
 
         # If we want to give a constraint of u
         if clipping is not None:
