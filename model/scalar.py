@@ -93,3 +93,36 @@ class pendulum:
                               [np.reshape(self.C @ self.x_ref,
                                           (np.shape(self.C)[0], 1))]])  # x_ref shape : (# row of C,) -> (# row of C, 1)
         return np.dot(self.Aa, aug_x).squeeze() + np.dot(self.Ba, u).squeeze() - aug_x_ref.squeeze()
+
+class dc_motor:
+    def __init__(
+            self,
+            x0=None,
+            x_ref=None,
+            C=np.diag([1, 1]),
+            Q=np.diag([1, 1]),
+            R=np.diag([1]),
+    ):
+        self.name = 'dc_motor'
+        # initial x_ref setting from trim condition
+        # x_ref default value : [some random value, 0]
+        if x_ref is not None:
+            self.x_ref = x_ref
+        else:
+            self.x_ref = np.zeros(2)
+        noise = 3 * np.random.randn(2)
+        # x0 default value : noise
+        if x0 is not None:
+            self.x0 = x0
+        else:
+            self.x0 = noise
+        self.A = np.array([[-10, 1],
+                           [-0.002, -2]])
+        self.B = np.array([[0],
+                           [2]])
+        self.C = C
+        self.Q = Q
+        self.R = R
+
+    def dynamics(self, x, t, u):
+        return (np.dot(self.A, x) + np.dot(self.B, u).squeeze()).squeeze()
