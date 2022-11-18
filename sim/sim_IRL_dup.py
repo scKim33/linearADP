@@ -98,7 +98,7 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
             # finding u after n * t_step
             u_ctrl_ = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dV(w, x_, model)
             if actuator_status:
-                u_act_ = np.array([u_ctrl_[0], 0])
+                u_act_ = np.array([u_ctrl[0], 0])
                 u_act_ = odeint(actuator.dynamics, u_act_, [t_, t_ + t_step_], args=(u_ctrl_[0],))
                 u_act_ = u_act_[-1, :]
                 u_ctrl_[0] = u_act_[0]
@@ -111,57 +111,25 @@ def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_
                     u_ctrl_[j] = np.clip(u_i, constraint[0], constraint[1])
             if u_is_scalar:
                 u_ctrl_ = np.asscalar(u_ctrl_)
-
-            x__ = None
-            x__list = None
-            u__list = None
-            u_ctrl__ = None
-            interval = 10
-            for _ in range(interval):
-                x__ = y_[-1, :] if x__ is not None else x_
-                u_ctrl__ = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dV(w, x__,
-                                                                          model) if u_ctrl__ is not None else u_ctrl_
-                if actuator_status:
-                    u_act__ = np.array([u_ctrl__[0], 0])
-                    u_act__ = odeint(actuator.dynamics, u_act__, [t_, t_ + 0.1 * t_step_], args=(u_ctrl__[0],))
-                    u_act__ = u_act__[-1, :]
-                    u_ctrl__[0] = u_act__[0]
-                y_ = odeint(dyn, x__, [t_, t_ + 1 / interval * t_step_], args=(u_ctrl__,))    # To find r integral value
-                x__ = y_[-1, :]
-                x__list = np.vstack((x__list, x__)) if x__list is not None else x__ # interval x num_x matrix finally
-                u__list = np.vstack((u__list, u_ctrl__)) if u__list is not None else u_ctrl__  # interval x num_x matrix finally
-            x_sum = 2 * np.sum(x__list, axis=0) - x__list[-1, :] + x_
-            u_sum = np.sum(u__list, axis=0)
-            r_integral = 0.25 * t_step_ / interval * (x_sum.T @ model.Q @ x_sum) + t_step_ / interval * (u_sum.T @ model.R @ u_sum) # trapezoidal rule of integration
+            y_ = odeint(dyn, x_, [t_, t_ + t_step_], args=(u_ctrl_,))
             x_old = x_
-            x_ = y_[-1, :] + 0.1 * np.random.randn(num_x) * y_[-1, :]
-            # x_ = y_[-1, :]
-
-
+            x_ = y_[-1, :]
 
             if method == "PI":
+                r = r + t_step_ * (x_.T @ model.Q @ x_ + u_ctrl_.T @ model.R @ u_ctrl_)  # integral of xQx+uRu
                 X = np.vstack((X, PI(x, model) - PI(x_, model))) if X is not None else PI(x, model) - PI(x_, model) # set of basis
-                try:
-                    R = np.append(R, R[-1] + r_integral)  # set of integral(xQx+uRu)
-                except:
-                    R = np.append(R, r_integral)
+                R = np.append(R, r)  # set of integral(xQx+uRu)
             elif method == "VI":
+                r = t_step_ * (x_.T @ model.Q @ x_ + u_ctrl_.T @ model.R @ u_ctrl_)
                 PI_ = np.vstack((PI_, PI(x_, model))) if PI_ is not None else PI(x_, model)
                 X = np.vstack((X, PI(x_old, model))) if X is not None else PI(x_old, model)
-                R = np.append(R, r_integral)
+                R = np.append(R, r)
             t_ = t_ + t_step_
         if method == "PI":
-            w_temp = np.linalg.inv(X.T @ X) @ X.T @ R
+            w = np.linalg.inv(X.T @ X) @ X.T @ R
         elif method == "VI":
-            w_temp = np.linalg.inv(X.T @ X) @ X.T @ (R + PI_ @ w)
-        # if np.max(abs(w)) < 20:
-        #     w = w_temp
-        w = w_temp
-        # breakpoint()
-        print("t : {}".format(t))
-        print("Phi_bar : {}".format(X))
-        print("W : {}".format(w))
-        print("Condition number : {}".format(np.linalg.cond(X.T@X)))
+            w = np.linalg.inv(X.T @ X) @ X.T @ (R + PI_ @ w)
+
         if np.isclose(t, t_end):
             w_hist = w_hist.reshape(-1, len(w))
             x_hist = x_hist.reshape(-1, len(x))
