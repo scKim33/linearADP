@@ -20,39 +20,16 @@ actuator = Actuator()
 t_end = 3
 t_step = 0.1
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
-agent = "IRL" # choose a controller from ["PID", "LQR", "LQI"]
 
-if agent == "PID":
-    # PID controller setting
-    Kp = 10
-    Ki = 1
-    Kd = 10
-    ctrl = {"PID": PID(Kp, Ki, Kd, setpoint=model.x_ref)}
-    # simulation condition -> set dt equal to simulation time step
-    # if not, pid takes value as real time step
-    x0 = model.x0
-    dyn = model.dynamics
-elif agent == "LQR":
-    # LQR controller setting
-    Q = model.Q
-    R = model.R
-    K, _, _ = lqr(model.A, model.B, Q, R)
-    ctrl = {"LQR": -K}
-    x0 = model.x0
-    dyn = model.dynamics
-elif agent == "LQI":
-    # LQI controller setting
-    Qa = model.Qa
-    Ra = model.Ra
-    Ka, _, _ = lqr(model.Aa, model.Ba, Qa, Ra)
-    ctrl = {"LQI": -Ka}
-    x0 = np.append(model.x0, - model.C @ model.x_ref) # x0 dim : (n,), x_ref dim : (# of C matrix row,) -> x0 dim : (n + C mat row,)
-    dyn = model.aug_dynamics
-else:
-    raise ValueError("Invalid agent name")
+# IRL controller setting
+Q = model.Q
+R = model.R
+x0 = model.x0
+dyn = model.dynamics
+method = "PI"
 
 # Do simulation
-x_hist, u_hist = sim(t_end, t_step, model, actuator, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint, actuator_status=False)
+x_hist, u_hist, w_hist = sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, method=method, actuator_status=False)
 
 # Plot the results
 # plt.figure()
@@ -115,3 +92,13 @@ plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
 plt.ylabel(r'u')
 plt.title('Control trajectory')
+
+if agent == "IRL":
+    plt.figure()
+    for i in range(len(w_hist[0, :])):
+        plt.plot(tspan, w_hist[:, i], 'x', linewidth=1.2, label='w[{}]'.format(i))
+    plt.xlim([tspan[0], tspan[-1]])
+    plt.legend()
+    plt.grid()
+    plt.title(r'Weight of Value Function')
+plt.show()
