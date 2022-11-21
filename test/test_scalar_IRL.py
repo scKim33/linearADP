@@ -1,12 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from simple_pid import PID
-from control import lqr
 
 from model.scalar import pendulum, dc_motor
 from model.actuator import Actuator
-from sim.sim import sim
 from sim.sim_IRL import sim_IRL
+from sim.sim_IRL_onpolicy import sim_IRL_onpolicy
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
@@ -93,12 +91,11 @@ plt.grid()
 plt.ylabel(r'u')
 plt.title('Control trajectory')
 
-if agent == "IRL":
-    plt.figure()
-    for i in range(len(w_hist[0, :])):
-        plt.plot(tspan, w_hist[:, i], 'x', linewidth=1.2, label='w[{}]'.format(i))
-    plt.xlim([tspan[0], tspan[-1]])
-    plt.legend()
-    plt.grid()
-    plt.title(r'Weight of Value Function')
+plt.figure()
+for i in range(len(w_hist[0, :])):
+    plt.plot(tspan, w_hist[:, i], 'x', linewidth=1.2, label='w[{}]'.format(i))
+plt.xlim([tspan[0], tspan[-1]])
+plt.legend()
+plt.grid()
+plt.title(r'Weight of Value Function')
 plt.show()

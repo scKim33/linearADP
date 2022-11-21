@@ -20,7 +20,7 @@ actuator = Actuator()
 t_end = 3
 t_step = 0.1
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
-agent = "IRL" # choose a controller from ["PID", "LQR", "LQI"]
+agent = "LQR" # choose a controller from ["PID", "LQR", "LQI"]
 
 if agent == "PID":
     # PID controller setting
@@ -115,3 +115,5 @@ plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
 plt.ylabel(r'u')
 plt.title('Control trajectory')
+
+plt.show()
