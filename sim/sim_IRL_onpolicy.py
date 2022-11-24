@@ -39,17 +39,17 @@ class Sim:
                 u[i, 0] = np.clip(u_i, constraint[0], constraint[1])  # constraint of u
         return u  # (n, 1)
 
-    def on_policy_iteration(self, x0, clipping, dyn):
+    def iteration(self, x0, clipping, dyn):
         n = self.n
         m = self.m
         model = self.model
         P_list = []  # P_0, P_1, ... len of k
         K_list = []  # K_0, K_1, ... len of k+1
+        K = 0.01 * np.random.randn(n, m)  # Initial gain matrix
+        K_list.append(K)
         x = x0
 
         while True:
-            K = np.zeros((n, m))  # Initial gain matrix : zero matrix
-            K_list.append(K)
             Q = model.Q + K_list[-1].T @ model.R @ K_list[-1]
 
             line = 0  # number of row line of Theta_k
@@ -61,7 +61,7 @@ class Sim:
             x_list = x0  # (m, 1)
             e_list = np.random.randn(n, 1)
             while np.linalg.matrix_rank(Theta) < n * (n + 1) / 2 + m * n and np.linalg.cond(
-                    Theta) > 1e3 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
+                    Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
                 fx1_list = np.kron(x_list[:, -1],
                                    e_list[:, -1].T @ model.R)  # (1, mn) # used for integral of Theta, Xi matrix
                 fx2_list = (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape((1, 1))  # (1, 1)
@@ -107,16 +107,16 @@ class Sim:
                     break
         return P_list, K_list
 
-    def sim_IRL_on_policy(self, t_end, t_step, dyn, x0, x_ref, clipping=None):
+    def sim(self, t_end, t_step, dyn, x0, x_ref, clipping=None):
         m = self.m
         n = self.n
         model = self.model
 
-        P_list, K_list = self.on_policy_iteration(x0, clipping, dyn)
+        P_list, K_list = self.iteration(x0, clipping, dyn)
         t = 0
         x = x0
         # K, _, _ = lqr(model.A, model.B, model.Q, model.R) # This is standard LQR result
-        K = - np.linalg.inv(model.R) @ model.B.T @ P_list[-1]  # This is on policy result
+        K = K_list[-1]  # This is on policy result
         x_hist = x0  # (m, 1)
         u_hist = -K @ (x - x_ref)  # (n, 1)
         while True:
