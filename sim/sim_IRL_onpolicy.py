@@ -58,29 +58,29 @@ class Sim:
             rank = 0
             t_lk = 0
             t_step_on_loop = 0.02
-            delta_idx = 5  # index jumping at t_lk
+            delta_idx = 1  # index jumping at t_lk
             Theta = None
             Xi = None
             x_list = x0  # (m, 1)
             e_list = np.random.randn(n, 1)
 
-            # while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n or np.linalg.cond(
-            #         Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
-            while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
+            while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
+            # while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
                 # breakpoint()
-                # x_list = np.hstack(
-                #     (x_list, np.random.randn(m,1)))
-                x_list = np.hstack((x_list, 0.1 * np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
+                # x_list = np.hstack((x_list, np.random.randn(m,1)))
+                # x_list = np.hstack((x_list, np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
+                x_list = np.hstack((x_list, np.diag(np.random.choice([-1,1],m)) @ np.diag(np.random.normal(1, 1, m)) @ x0))
                 line += 1
                 fx1_list = np.kron(x_list[:, -1],
                                    e_list[:, -1].T @ model.R)  # (1, mn) # used for integral of Theta, Xi matrix
                 fx2_list = (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape((1, 1))  # (1, 1)
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
-                    e = np.random.randn(n, 1)
+                    e = 10 * np.random.randn(n, 1)
+                    # e = np.zeros((n,1))
                     u = -K_list[-1] @ x_list[:, -1].reshape((m, 1)) + e  # (n, 1)
-                    u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
-                        (n, 1))  # control input after passing actuator (n, 1)
-                    u = self.clipping_u(u, clipping)  # control input constraint
+                    # u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
+                    #     (n, 1))  # control input after passing actuator (n, 1)
+                    # u = self.clipping_u(u, clipping)  # control input constraint
 
                     y = odeint(dyn, x_list[:, -1].reshape((m,)), [t_lk, t_lk + t_step_on_loop],
                                args=(u.reshape(n, ),))  # size of (2, n)
@@ -104,39 +104,51 @@ class Sim:
                     (element_1, element_2))  # size of (rows, nn+ mn)
                 Xi = np.vstack((Xi, np.array([element_3]).reshape((1, 1)))) if Xi is not None else np.array(
                     [element_3]).reshape((1, 1))  # size of (rows, 1)
+                # breakpoint()
+                # print(line)
+                # print(np.linalg.cond(Theta))
 
                 # if rank == np.linalg.matrix_rank(Theta):  # if adding row of Theta does not change the rank
                 #     print('not')
                 #     x_list = np.hstack((x_list, x0))  # gives x initialize as x0
                 #     continue
-                # rank = np.linalg.matrix_rank(Theta)
-                # print(rank)
-                # print(np.linalg.cond(Theta))
+                rank = np.linalg.matrix_rank(Theta)
+                print(rank)
+                print(np.linalg.cond(Theta))
+                print(Theta)
+                print(np.linalg.eig(Theta.T@Theta)[0])
 
-            # Making symmetric matrix P, and gain matrix K
-            idx = np.where(np.tril(np.full((m, m), 1), -1).reshape((m*m), order="F") == 1)[0]
-            mask = np.ones((m*m + m*n,), dtype=bool)
-            mask[idx] = False
-            Theta_aug = Theta[:, mask]
-            sol, _, _, _ = np.linalg.lstsq(Theta_aug, Xi)  # size of (mm + mn, 1)
-            print(np.linalg.cond(Theta))
-            P = np.zeros((m*m,))
-            P[mask[:-m*n]] = sol[:int(m * (m + 1) / 2)].squeeze()
-            P = P.reshape((m, m), order='F')    # upper triangular matrix
-            P = P + np.triu(P, 1).T
-            P_list.append(0.9 * P_list[-1] + 0.1 * P) if len(P_list) > 2 else P_list.append(P)
-            print(P)
-            K = sol[int(m * (m + 1) / 2):].reshape((n, m), order='F')
-            print(K)
-            K_list.append(0.9 * K_list[-1] + 0.1 * K)
+            # # Making symmetric matrix P, and gain matrix K
+            # idx = np.where(np.tril(np.full((m, m), 1), -1).reshape((m*m), order="F") == 1)[0]
+            # mask = np.ones((m*m + m*n,), dtype=bool)
+            # mask[idx] = False
+            # Theta_aug = Theta[:, mask]
+            # sol, _, _, _ = np.linalg.lstsq(Theta_aug, Xi)  # size of (mm + mn, 1)
+            # P = np.zeros((m*m,))
+            # P[mask[:-m*n]] = sol[:int(m * (m + 1) / 2)].squeeze()
+            # P = P.reshape((m, m), order='F')    # upper triangular matrix
+            # P = P + np.triu(P, 1).T
+            # P_list.append(P)
+            # print(P)
+            # K = sol[int(m * (m + 1) / 2):].reshape((n, m), order='F')
+            # print(K)
+            # K_list.append(K)
+            # k += 1
+
+            sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
+            P = sol[:m*m].reshape((m,m))
+            P_list.append(P)
+            # print(P)
+            K = sol[m*m:].reshape((n, m), order='F')
+            # print(K)
+            K_list.append(K)
             k += 1
 
             if len(P_list) > 2:
                 print(np.linalg.norm(P_list[-1] - P_list[-2]))
-                if np.linalg.norm(P_list[-1] - P_list[-2]) < 1e-3:
-                    print(np.linalg.matrix_rank(Theta))
-                    print(line)
-                    print(np.linalg.cond(Theta))
+                if np.linalg.norm(P_list[-1] - P_list[-2]) < 1e-3 or k > 100:
+                    print(P)
+                    print(K)
                     break
         return P_list, K_list
 
