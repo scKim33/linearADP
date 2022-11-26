@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.integrate import odeint
+from scipy.linalg import matrix_balance
 from model.actuator import Actuator
 from control import lqr
 
@@ -45,14 +46,16 @@ class Sim:
         model = self.model
         P_list = []  # P_0, P_1, ... len of k
         K_list = []  # K_0, K_1, ... len of k+1
-        K = 0.01 * np.random.randn(n, m)  # Initial gain matrix
+        K = np.zeros((n, m))  # Initial gain matrix
         K_list.append(K)
         x = x0
+        k = 0
 
         while True:
             Q = model.Q + K_list[-1].T @ model.R @ K_list[-1]
 
             line = 0  # number of row line of Theta_k
+            rank = 0
             t_lk = 0
             t_step_on_loop = 0.02
             delta_idx = 5  # index jumping at t_lk
@@ -60,8 +63,15 @@ class Sim:
             Xi = None
             x_list = x0  # (m, 1)
             e_list = np.random.randn(n, 1)
-            while np.linalg.matrix_rank(Theta) < n * (n + 1) / 2 + m * n and np.linalg.cond(
-                    Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
+
+            # while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n or np.linalg.cond(
+            #         Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
+            while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
+                # breakpoint()
+                # x_list = np.hstack(
+                #     (x_list, np.random.randn(m,1)))
+                x_list = np.hstack((x_list, 0.1 * np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
+                line += 1
                 fx1_list = np.kron(x_list[:, -1],
                                    e_list[:, -1].T @ model.R)  # (1, mn) # used for integral of Theta, Xi matrix
                 fx2_list = (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape((1, 1))  # (1, 1)
@@ -95,15 +105,38 @@ class Sim:
                 Xi = np.vstack((Xi, np.array([element_3]).reshape((1, 1)))) if Xi is not None else np.array(
                     [element_3]).reshape((1, 1))  # size of (rows, 1)
 
-            sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
-            sol.reshape((m * m + m * n, 1))
-            P = sol[:m * m].reshape((m, m))
-            P_list.append(P)
-            K = sol[m * m:].reshape((n, m), order='F')
-            K_list.append(K)
+                # if rank == np.linalg.matrix_rank(Theta):  # if adding row of Theta does not change the rank
+                #     print('not')
+                #     x_list = np.hstack((x_list, x0))  # gives x initialize as x0
+                #     continue
+                # rank = np.linalg.matrix_rank(Theta)
+                # print(rank)
+                # print(np.linalg.cond(Theta))
+
+            # Making symmetric matrix P, and gain matrix K
+            idx = np.where(np.tril(np.full((m, m), 1), -1).reshape((m*m), order="F") == 1)[0]
+            mask = np.ones((m*m + m*n,), dtype=bool)
+            mask[idx] = False
+            Theta_aug = Theta[:, mask]
+            sol, _, _, _ = np.linalg.lstsq(Theta_aug, Xi)  # size of (mm + mn, 1)
+            print(np.linalg.cond(Theta))
+            P = np.zeros((m*m,))
+            P[mask[:-m*n]] = sol[:int(m * (m + 1) / 2)].squeeze()
+            P = P.reshape((m, m), order='F')    # upper triangular matrix
+            P = P + np.triu(P, 1).T
+            P_list.append(0.9 * P_list[-1] + 0.1 * P) if len(P_list) > 2 else P_list.append(P)
+            print(P)
+            K = sol[int(m * (m + 1) / 2):].reshape((n, m), order='F')
+            print(K)
+            K_list.append(0.9 * K_list[-1] + 0.1 * K)
+            k += 1
 
             if len(P_list) > 2:
-                if np.linalg.norm(P_list[-1] - P_list[-2]) < 1e-2:
+                print(np.linalg.norm(P_list[-1] - P_list[-2]))
+                if np.linalg.norm(P_list[-1] - P_list[-2]) < 1e-3:
+                    print(np.linalg.matrix_rank(Theta))
+                    print(line)
+                    print(np.linalg.cond(Theta))
                     break
         return P_list, K_list
 
@@ -116,6 +149,17 @@ class Sim:
         t = 0
         x = x0
         # K, _, _ = lqr(model.A, model.B, model.Q, model.R) # This is standard LQR result
+        # DC-Motor
+        # K : array([[0.00772631, 0.41694259]])
+        # P : array([[0.04999624, 0.00386316],
+        #            [0.00386316, 0.2084713 ]])
+        # F-18
+        # K : array([[1.29569582e-02, -1.59486715e-01, 2.80573531e-03, 4.45661101e-02],
+        #            [1.93568908e-04, -1.23264286e-02, -1.45409991e-04, -9.48189572e-03]])
+        # P : array([[1.47251758e-01, -1.81420801e+00, 3.18544776e-02, 5.04540680e-01],
+        #            [-1.81420801e+00, 5.27191154e+02, 3.99874533e+00, 5.04121432e+02],
+        #            [3.18544776e-02, 3.99874533e+00, 8.96117708e-02, 4.60378587e+00],
+        #            [5.04540680e-01, 5.04121432e+02, 4.60378587e+00, 5.18369240e+02]])
         K = K_list[-1]  # This is on policy result
         x_hist = x0  # (m, 1)
         u_hist = -K @ (x - x_ref)  # (n, 1)

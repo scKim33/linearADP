@@ -60,10 +60,12 @@ class Sim:
             Xi = None
             theta_xx = None
             theta_xu = None
+            delta_xx = None
             x_list = x0  # (m, 1)
             u0 = np.random.randn(n, 1)
-            while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < n * (n + 1) / 2 + m * n and np.linalg.cond(
+            while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n or np.linalg.cond(
                     Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
+                line += 1
                 fx1_list = np.kron(x_list[:, -1].T, x_list[:, -1].T).reshape((1, m*m))  # (1, mm) # used for integral of theta_xx
                 fx2_list = np.kron(x_list[:, -1].T, u0.T).reshape((1, m*n))  # (1, 1) # used for integral of theta_xu
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
@@ -83,11 +85,13 @@ class Sim:
                 fx2_integral = np.trapz(fx2_list, dx=t_step_on_loop, axis=0).reshape((1, m*n))
                 theta_xx = np.vstack((theta_xx, fx1_integral)) if theta_xx is not None else fx1_integral
                 theta_xu = np.vstack((theta_xu, fx2_integral)) if theta_xu is not None else fx2_integral
-                delta_xx = (np.kron(x_list[:, -delta_idx - 1].T, x_list[:, -delta_idx - 1].T) - np.kron(x_list[:, -1].T, x_list[:, -1].T)).reshape((1, m * m))  # size of (1, mm)
+                delta_xx = np.vstack((delta_xx, (np.kron(x_list[:, -delta_idx - 1].T, x_list[:, -delta_idx - 1].T) - np.kron(x_list[:, -1].T, x_list[:, -1].T)).reshape((1, m * m))) if delta_xx is not None else (np.kron(x_list[:, -delta_idx - 1].T, x_list[:, -delta_idx - 1].T) - np.kron(x_list[:, -1].T, x_list[:, -1].T)).reshape((1, m * m))) # size of (lines, mm)
                 element_1 = -2 * theta_xx @ np.kron(np.eye(m), K_list[-1].T @ self.model.R) -2 * theta_xu @ np.kron(np.eye(m), self.model.R)
+                # breakpoint()
                 Theta = np.vstack((Theta, np.hstack((delta_xx, element_1)))) if Theta is not None else np.hstack(
                     (delta_xx, element_1))  # size of (rows, nn+ mn)
                 Xi = np.vstack((Xi, -theta_xx @ Q.reshape((m*m, 1)))) if Xi is not None else -theta_xx @ Q.reshape((m*m, 1))  # size of (rows, 1)
+                print(np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])))
 
             sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
             sol.reshape((m * m + m * n, 1))
@@ -98,6 +102,9 @@ class Sim:
 
             if len(P_list) > 2:
                 if np.linalg.norm(P_list[-1] - P_list[-2]) < 1e-2:
+                    print(np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])))
+                    print(line)
+                    print(np.linalg.cond(Theta))
                     break
         return P_list, K_list
 
@@ -110,7 +117,14 @@ class Sim:
         t = 0
         x = x0
         # K, _, _ = lqr(model.A, model.B, model.Q, model.R) # This is standard LQR result
+        # K : array([[1.29569582e-02, -1.59486715e-01, 2.80573531e-03, 4.45661101e-02],
+        #            [1.93568908e-04, -1.23264286e-02, -1.45409991e-04, -9.48189572e-03]])
+        # P : array([[1.47251758e-01, -1.81420801e+00, 3.18544776e-02, 5.04540680e-01],
+        #            [-1.81420801e+00, 5.27191154e+02, 3.99874533e+00, 5.04121432e+02],
+        #            [3.18544776e-02, 3.99874533e+00, 8.96117708e-02, 4.60378587e+00],
+        #            [5.04540680e-01, 5.04121432e+02, 4.60378587e+00, 5.18369240e+02]])
         K = K_list[-1]  # This is off policy result
+        print(K)
         x_hist = x0  # (m, 1)
         u_hist = -K @ (x - x_ref)  # (n, 1)
         while True:
