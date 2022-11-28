@@ -61,23 +61,22 @@ class Sim:
             delta_idx = 1  # index jumping at t_lk
             Theta = None
             Xi = None
-            x_list = x0  # (m, 1)
-            e_list = np.random.randn(n, 1)
+            x_list = None  # (m, 1)
+            e_list = 0.1 * np.random.randn(n, 1)
 
-            while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
-            # while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
+            # while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
+            while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
                 # breakpoint()
                 # x_list = np.hstack((x_list, np.random.randn(m,1)))
                 # x_list = np.hstack((x_list, np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
-                x_list = np.hstack((x_list, np.diag(np.random.choice([-1,1],m)) @ np.diag(np.random.normal(1, 1, m)) @ x0))
+                x_list = np.hstack((x_list, np.diag(np.random.choice([-1,1],m)) @ np.diag(np.random.normal(1, 1, m)) @ x0)) if x_list is not None else np.diag(np.random.choice([-1,1],m)) @ np.diag(np.random.normal(1, 1, m)) @ x0
                 line += 1
                 fx1_list = np.kron(x_list[:, -1],
-                                   e_list[:, -1].T @ model.R)  # (1, mn) # used for integral of Theta, Xi matrix
+                                   e_list[:, -1].T @ model.R)  # (1, mn) # used for integral of Theta, Xi matrix # t_lk
                 fx2_list = (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape((1, 1))  # (1, 1)
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
-                    e = 10 * np.random.randn(n, 1)
-                    # e = np.zeros((n,1))
-                    u = -K_list[-1] @ x_list[:, -1].reshape((m, 1)) + e  # (n, 1)
+                    u = -K_list[-1] @ x_list[:, -1].reshape((m, 1)) + e_list[:, -1]  # (n, 1)
+                    print(u)
                     # u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
                     #     (n, 1))  # control input after passing actuator (n, 1)
                     # u = self.clipping_u(u, clipping)  # control input constraint
@@ -85,13 +84,15 @@ class Sim:
                     y = odeint(dyn, x_list[:, -1].reshape((m,)), [t_lk, t_lk + t_step_on_loop],
                                args=(u.reshape(n, ),))  # size of (2, n)
                     x_list = np.hstack((x_list, y[-1, :].reshape((m, 1))))
+                    e = 0.01 * np.random.randn(n, 1)
+                    # e = np.zeros((n,1))
                     e_list = np.hstack((e_list, e))
                     fx1_list = np.vstack((fx1_list, np.kron(x_list[:, -1].T, e_list[:,
                                                                              -1].T @ model.R)))  # size of (delta_idx+1, mn) after loop  # used for integral of Theta, Xi matrix
                     fx2_list = np.vstack((fx2_list, (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape(
                         (1, 1))))  # size of (delta_idx+1, 1) after loop
                     t_lk = t_lk + t_step_on_loop
-
+                # breakpoint()
                 element_1 = (
                             np.kron(x_list[:, -delta_idx - 1].T, x_list[:, -delta_idx - 1].T) - np.kron(x_list[:, -1].T,
                                                                                                         x_list[:,
@@ -100,6 +101,7 @@ class Sim:
                 element_2 = (-2 * np.trapz(fx1_list, dx=t_step_on_loop, axis=0)).reshape(
                     (1, m * n))  # size fx_list : (delta_idx+1, mn)
                 element_3 = np.trapz(fx2_list, dx=t_step_on_loop, axis=0)
+                # breakpoint()
                 Theta = np.vstack((Theta, np.hstack((element_1, element_2)))) if Theta is not None else np.hstack(
                     (element_1, element_2))  # size of (rows, nn+ mn)
                 Xi = np.vstack((Xi, np.array([element_3]).reshape((1, 1)))) if Xi is not None else np.array(
@@ -118,37 +120,39 @@ class Sim:
                 print(Theta)
                 print(np.linalg.eig(Theta.T@Theta)[0])
 
-            # # Making symmetric matrix P, and gain matrix K
-            # idx = np.where(np.tril(np.full((m, m), 1), -1).reshape((m*m), order="F") == 1)[0]
-            # mask = np.ones((m*m + m*n,), dtype=bool)
-            # mask[idx] = False
-            # Theta_aug = Theta[:, mask]
-            # sol, _, _, _ = np.linalg.lstsq(Theta_aug, Xi)  # size of (mm + mn, 1)
-            # P = np.zeros((m*m,))
-            # P[mask[:-m*n]] = sol[:int(m * (m + 1) / 2)].squeeze()
-            # P = P.reshape((m, m), order='F')    # upper triangular matrix
-            # P = P + np.triu(P, 1).T
+            # Making symmetric matrix P, and gain matrix K
+            idx = np.where(np.tril(np.full((m, m), 1), -1).reshape((m*m), order="F") == 1)[0]
+            mask = np.ones((m*m + m*n,), dtype=bool)
+            mask[idx] = False
+            Theta_aug = Theta[:, mask]
+            sol, _, _, _ = np.linalg.lstsq(Theta_aug, Xi)  # size of (mm + mn, 1)
+            P = np.zeros((m*m,))
+            P[mask[:-m*n]] = sol[:int(m * (m + 1) / 2)].squeeze()
+            P = P.reshape((m, m), order='F')    # upper triangular matrix
+            P = P + np.triu(P, 1).T
+            P_list.append(P)
+            print(P)
+            K = sol[int(m * (m + 1) / 2):].reshape((n, m), order='F')
+            print(K)
+            K_list.append(K)
+            k += 1
+
+            # sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
+            # P = sol[:m*m].reshape((m,m))
             # P_list.append(P)
             # print(P)
-            # K = sol[int(m * (m + 1) / 2):].reshape((n, m), order='F')
+            # K = sol[m*m:].reshape((n, m), order='F')
             # print(K)
             # K_list.append(K)
             # k += 1
-
-            sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
-            P = sol[:m*m].reshape((m,m))
-            P_list.append(P)
-            # print(P)
-            K = sol[m*m:].reshape((n, m), order='F')
-            # print(K)
-            K_list.append(K)
-            k += 1
+            # breakpoint()
 
             if len(P_list) > 2:
                 print(np.linalg.norm(P_list[-1] - P_list[-2]))
                 if np.linalg.norm(P_list[-1] - P_list[-2]) < 1e-3 or k > 100:
                     print(P)
                     print(K)
+                    # breakpoint()
                     break
         return P_list, K_list
 
