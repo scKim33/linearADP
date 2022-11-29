@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from model.scalar import pendulum, dc_motor
 from model.actuator import Actuator
 from sim.sim_IRL import sim_IRL
-from sim.sim_IRL_onpolicy import sim_IRL_onpolicy
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices

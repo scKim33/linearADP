@@ -21,7 +21,7 @@ dyn = model.dynamics
 actuator = Actuator()
 u_constraint = np.array([[0 - model.u_trim[0], 1 - model.u_trim[0]],
                          [np.deg2rad(-20), np.deg2rad(20)]])
-agent = "on"   # 1."on", 2."off"
+agent = "off"   # 1."on", 2."off"
 
 t_end = 50
 t_step = 0.02
@@ -30,10 +30,10 @@ tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 # Do simulation
 if agent == "on":
     sim = Sim_on_policy(actuator=actuator, model=model)
-    x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=1e5, constraint_K=1e2, tol=5e4)
+    x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=1e6, constraint_K=1e3, tol=5e4)
 elif agent == "off":
     sim = Sim_off_policy(actuator=actuator, model=model)
-    x_hist, u_hist = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=1e5, tol=3e6)
+    x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=1e5, constraint_K=1e2, tol=4e3)
 
 # Plot the results
 x_ref_for_plot = [model.x_trim[0],

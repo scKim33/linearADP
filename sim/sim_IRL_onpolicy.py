@@ -83,8 +83,7 @@ class Sim:
                         (1, 1))))  # size of (delta_idx+1, 1) after loop
                     t_lk = t_lk + t_step_on_loop
 
-                element_1 = (np.kron(x_list[:, -1].T, x_list[:, -1].T) -
-                            np.kron(x_list[:, -delta_idx - 1].T, x_list[:, -delta_idx - 1].T)).reshape((1, m * m))  # size of (1, mm)
+                element_1 = (np.kron(x_list[:, -1].T, x_list[:, -1].T) - np.kron(x_list[:, -delta_idx - 1].T, x_list[:, -delta_idx - 1].T)).reshape((1, m * m))  # size of (1, mm)
                 element_2 = (-2 * np.trapz(fx1_list, dx=t_step_on_loop, axis=0)).reshape((1, m * n))  # size fx_list : (delta_idx+1, mn)
                 element_3 = np.trapz(fx2_list, dx=t_step_on_loop, axis=0)
                 Theta = np.vstack((Theta, np.hstack((element_1, element_2)))) if Theta is not None else np.hstack((element_1, element_2))  # size of (rows, nn+ mn)
@@ -94,7 +93,7 @@ class Sim:
                     count += 1
                 if count >= 5:
                     flag = False
-                    print("rank saturated")
+                    print("Rank saturated")
                     break
                 print(rank)
                 rank = np.linalg.matrix_rank(Theta)
@@ -115,8 +114,8 @@ class Sim:
                 K = sol[int(m * (m + 1) / 2):].reshape((n, m), order='F')
                 print(K)
                 K_list.append(K)
-                if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K:   # Ignore some bad cases
-                    print("ignore bad cases")
+                if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:   # Ignore some bad cases
+                    print("Ignoring overly diverging P, K solutions")
                     del P_list[-1]
                     del K_list[-1]
                     continue
@@ -126,21 +125,21 @@ class Sim:
             #     sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
             #     P = sol[:m*m].reshape((m, m))
             #     P_list.append(P)
-            #     if np.max(abs(P_list[-1])) > constraint_P:   # Ignore some bad cases
-            #         print("ignore bad cases")
+            #     if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:  # Ignore some bad cases
+            #         print("Ignoring overly diverging P, K solutions")
             #         del P_list[-1]
+            #         del K_list[-1]
             #         continue
             #     print(P)
             #     K = sol[m*m:].reshape((n, m), order='F')
             #     print(K)
             #     K_list.append(K)
             #     k += 1
-            #     # breakpoint()
 
                 if len(P_list) >= 2:
-                    print(np.linalg.norm(P_list[-1] - P_list[-2]))
+                    # print(np.linalg.norm(P_list[-1] - P_list[-2]))
                     if np.linalg.norm(P_list[-1] - P_list[-2]) < tol:
-                        print(k)
+                        print("Total iterations : {}".format(k))
                         break
         return P_list, K_list
 

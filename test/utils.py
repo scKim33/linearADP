@@ -70,7 +70,7 @@ def plot_K(Matrix_list):
 
     plt.figure()
     for i in range(m):
-        for j in range(n):
+        for j in range(i, n):
             plt.plot(range(iters), Matrix_hist[:, i, j], linewidth=1.2, label=r'K({}, {})'.format(i+1, j+1))
     plt.xlim([0, iters-1])
     plt.xlabel('Iteration')

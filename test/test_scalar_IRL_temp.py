@@ -9,10 +9,10 @@ from control import lqr
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
-# x0 = np.array([[4],
-#                [2]])
-x0 = np.array([[-3],
-               [-5]])
+x0 = np.array([[4],
+               [2]])
+# x0 = np.array([[-3],
+#                [-5]])
 # x0 = np.array([[3],
 #                [-3]])
 x_ref = np.array([[0],
@@ -22,7 +22,7 @@ model = dc_motor(x0=x0, x_ref=x_ref)
 dyn = model.dynamics
 actuator = Actuator()
 u_constraint = np.array([[-20, 20]])
-agent = "on"   # 1."on", 2."off"
+agent = "off"   # 1."on", 2."off"
 
 t_end = 10
 t_step = 0.1
@@ -34,7 +34,7 @@ if agent == "on":
     x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=1e-3)
 elif agent == "off":
     sim = Sim_off_policy(actuator=actuator, model=model)
-    x_hist, u_hist = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint)
+    x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=1e-4)
 
 K_lqr, P_lqr, _ = lqr(model.A, model.B, model.Q, model.R)
 print("Norm difference of P_lqr and P_Kleinmann: {}".format(np.linalg.norm(P_list[-1] - P_lqr)))
