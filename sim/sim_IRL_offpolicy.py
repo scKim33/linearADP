@@ -87,7 +87,6 @@ class Sim:
                 theta_xu = np.vstack((theta_xu, fx2_integral)) if theta_xu is not None else fx2_integral
                 delta_xx = np.vstack((delta_xx, (np.kron(x_list[:, -delta_idx - 1].T, x_list[:, -delta_idx - 1].T) - np.kron(x_list[:, -1].T, x_list[:, -1].T)).reshape((1, m * m))) if delta_xx is not None else (np.kron(x_list[:, -delta_idx - 1].T, x_list[:, -delta_idx - 1].T) - np.kron(x_list[:, -1].T, x_list[:, -1].T)).reshape((1, m * m))) # size of (lines, mm)
                 element_1 = -2 * theta_xx @ np.kron(np.eye(m), K_list[-1].T @ self.model.R) -2 * theta_xu @ np.kron(np.eye(m), self.model.R)
-                # breakpoint()
                 Theta = np.vstack((Theta, np.hstack((delta_xx, element_1)))) if Theta is not None else np.hstack(
                     (delta_xx, element_1))  # size of (rows, nn+ mn)
                 Xi = np.vstack((Xi, -theta_xx @ Q.reshape((m*m, 1)))) if Xi is not None else -theta_xx @ Q.reshape((m*m, 1))  # size of (rows, 1)
