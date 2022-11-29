@@ -140,7 +140,6 @@ class Sim:
                 if len(P_list) >= 2:
                     print(np.linalg.norm(P_list[-1] - P_list[-2]))
                     if np.linalg.norm(P_list[-1] - P_list[-2]) < tol:
-                        # breakpoint()
                         print(k)
                         break
         return P_list, K_list

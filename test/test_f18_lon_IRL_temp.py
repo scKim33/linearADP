@@ -5,6 +5,7 @@ from model.actuator import Actuator
 from sim.sim_IRL_onpolicy import Sim as Sim_on_policy
 from sim.sim_IRL_offpolicy import Sim as Sim_off_policy
 from utils import plot, plot_K, plot_P
+from control import lqr
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
@@ -45,6 +46,11 @@ x_hist = x_hist + model.x_trim.reshape((4, 1))
 x_hist[1:, :] = np.rad2deg(x_hist[1:, :])
 u_hist = u_hist + model.u_trim.reshape((2, 1))
 u_hist[1, :] = np.rad2deg(u_hist[1, :])
+
+K_lqr, P_lqr, _ = lqr(model.A, model.B, model.Q, model.R)
+print("Norm difference of P_lqr and P_Kleinmann: {}".format(np.linalg.norm(P_list[-1] - P_lqr)))
+print("Norm difference of K_lqr and K_Kleinmann: {}".format(np.linalg.norm(K_list[-1] - K_lqr)))
+
 plot(x_hist, u_hist, tspan, x_ref_for_plot, u_ref_for_plot, type='plot', x_shape=[2, 2], u_shape=[2, 1], x_label=['$V$ (m / s)', '$\\alpha$ (deg)', '$q$ (deg / s)', '$\gamma$ (deg)'], u_label=['$\delta_T$', '$\delta_e$ (deg)'])
 plot_P(P_list)
 plot_K(K_list)
