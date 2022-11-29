@@ -40,7 +40,7 @@ class Sim:
                 u[i, 0] = np.clip(u_i, constraint[0], constraint[1])  # constraint of u
         return u  # (n, 1)
 
-    def iteration(self, x0, clipping, dyn, constraint_P, tol):
+    def iteration(self, x0, clipping, dyn, constraint_P, constraint_K, tol):
         n = self.n
         m = self.m
         model = self.model
@@ -138,14 +138,15 @@ class Sim:
                 P = P.reshape((m, m), order='F')    # upper triangular matrix
                 P = P + np.triu(P, 1).T
                 P_list.append(P)
-                if np.max(abs(P_list[-1])) > constraint_P:   # Ignore some bad cases
-                    print("ignore bad cases")
-                    del P_list[-1]
-                    continue
                 print(P)
                 K = sol[int(m * (m + 1) / 2):].reshape((n, m), order='F')
                 print(K)
                 K_list.append(K)
+                if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K:   # Ignore some bad cases
+                    print("ignore bad cases")
+                    del P_list[-1]
+                    del K_list[-1]
+                    continue
                 k += 1
 
             # if flag:
@@ -171,12 +172,12 @@ class Sim:
                         break
         return P_list, K_list
 
-    def sim(self, t_end, t_step, dyn, x0, x_ref, clipping=None, constraint_P=1e5, tol=1e-3):
+    def sim(self, t_end, t_step, dyn, x0, x_ref, clipping=None, constraint_P=1e5, constraint_K=1e2, tol=1e-3):
         m = self.m
         n = self.n
         model = self.model
 
-        P_list, K_list = self.iteration(x0, clipping, dyn, constraint_P, tol)
+        P_list, K_list = self.iteration(x0, clipping, dyn, constraint_P, constraint_K, tol)
         t = 0
         x = x0
         # K, _, _ = lqr(model.A, model.B, model.Q, model.R) # This is standard LQR result
@@ -209,7 +210,7 @@ class Sim:
             u_hist = np.hstack((u_hist, u))
 
             t = t + t_step
-        return x_hist, u_hist  # (m, time_seq), (n, time_seq)
+        return x_hist, u_hist, P_list, K_list  # (m, time_seq), (n, time_seq)
 
 #
 # def actuator_u(actuator, u_ctrl, enabling_index=0, t_step=0.1):

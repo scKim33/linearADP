@@ -30,7 +30,51 @@ def plot(x_hist, u_hist, tspan, x_ref, u_ref, type='plot', x_shape=None, u_shape
         plt.plot(tspan, u_ref[i] * np.ones(len(tspan)), 'r--', linewidth=1.2)
         plt.grid()
         plt.xlim([tspan[0], tspan[-1]])
+        plt.xlabel('Time')
         plt.ylabel(r'{}'.format(u_label[i]))
         plt.title('Control trajectory')
+
+    plt.show()
+
+def plot_P(Matrix_list):
+    iters = len(Matrix_list)
+    m = Matrix_list[0].shape[0]
+
+    Matrix_hist = np.zeros((iters, m, m))
+    for iter in range(iters):
+        for i in range(m):
+            for j in range(m):
+                Matrix_hist[iter, i, j] = Matrix_list[iter][i, j]
+
+    plt.figure()
+    for i in range(m):
+        for j in range(i, m):
+            plt.plot(range(iters), Matrix_hist[:, i, j], linewidth=1.2, label=r'P({}, {})'.format(i+1, j+1))
+    plt.xlim([0, iters-1])
+    plt.xlabel('Iteration')
+    plt.grid()
+    plt.legend(loc='upper right')
+
+    plt.show()
+
+def plot_K(Matrix_list):
+    iters = len(Matrix_list)
+    m = Matrix_list[0].shape[0]
+    n = Matrix_list[0].shape[1]
+
+    Matrix_hist = np.zeros((iters, m, n))
+    for iter in range(iters):
+        for i in range(m):
+            for j in range(n):
+                Matrix_hist[iter, i, j] = Matrix_list[iter][i, j]
+
+    plt.figure()
+    for i in range(m):
+        for j in range(n):
+            plt.plot(range(iters), Matrix_hist[:, i, j], linewidth=1.2, label=r'K({}, {})'.format(i+1, j+1))
+    plt.xlim([0, iters-1])
+    plt.xlabel('Iteration')
+    plt.grid()
+    plt.legend(loc='upper right')
 
     plt.show()
