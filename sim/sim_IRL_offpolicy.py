@@ -127,15 +127,15 @@ class Sim:
                 sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
                 P = sol[:m*m].reshape((m, m))
                 P_list.append(P)
+                K = sol[m*m:].reshape((n, m), order='F')
+                print(K)
+                K_list.append(K)
                 if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:  # Ignore some bad cases
                     print("Ignoring overly diverging P, K solutions")
                     del P_list[-1]
                     del K_list[-1]
                     continue
                 print(P)
-                K = sol[m*m:].reshape((n, m), order='F')
-                print(K)
-                K_list.append(K)
                 k += 1
 
             if len(P_list) >= 2:
