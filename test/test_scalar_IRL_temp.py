@@ -26,7 +26,7 @@ tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 # Do simulation
 if agent == "on":
     sim = Sim_on_policy(actuator=actuator, model=model)
-    x_hist, u_hist = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint)
+    x_hist, u_hist = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, tol=0.01)
 elif agent == "off":
     sim = Sim_off_policy(actuator=actuator, model=model)
     x_hist, u_hist = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint)

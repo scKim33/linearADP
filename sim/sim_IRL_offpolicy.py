@@ -105,6 +105,7 @@ class Sim:
                     print(np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])))
                     print(line)
                     print(np.linalg.cond(Theta))
+                    print(k)
                     break
         return P_list, K_list
 
@@ -113,7 +114,7 @@ class Sim:
         n = self.n
         model = self.model
 
-        P_list, K_list = self.iteration(x0, clipping, dyn)
+        P_list, K_list = self.iteration(x0, clipping, constraint_P, dyn)
         t = 0
         x = x0
         # K, _, _ = lqr(model.A, model.B, model.Q, model.R) # This is standard LQR result
