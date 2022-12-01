@@ -46,7 +46,7 @@ class Sim:
         K_list = []  # K_0, K_1, ... len of k+1
         P = np.zeros((m, m))
         P_list.append(P)
-        K = 0.0001 * np.random.randn(n, m)  # Initial gain matrix
+        K = 0.001 * np.random.randn(n, m)  # Initial gain matrix
         K_list.append(K)
         k = 0
 
@@ -116,12 +116,15 @@ class Sim:
             #     P[mask[:-m*n]] = sol[:int(m * (m + 1) / 2)].squeeze()
             #     P = P.reshape((m, m), order='F')    # upper triangular matrix
             #     P = P + np.triu(P, 1).T
-            #     P_list.append(P)
-            #     print(P)
+            #     P_compute.append(P)
+            #     P_list.append(0.1 * P + 0.9 * P_list[-1])
+            #     # P_list.append(P)
+            #     # print(P)
             #     K = sol[int(m * (m + 1) / 2):].reshape((n, m), order='F')
-            #     print(K)
-            #     K_list.append(K)
-            #     if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:   # Ignore some bad cases
+            #     # print(K)
+            #     K_list.append(0.1 * K + 0.9 * K_list[-1])
+            #     # K_list.append(K)
+            #     if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:  # Ignore some bad cases
             #         print("Ignoring overly diverging P, K solutions")
             #         del P_list[-1]
             #         del K_list[-1]
@@ -132,12 +135,12 @@ class Sim:
                 sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
                 P = sol[:m*m].reshape((m, m))
                 P_compute.append(P)
-                # P_list.append(P)
-                P_list.append(0.1 * P + 0.9 * P_list[-1])
+                P_list.append(P)
+                # P_list.append(0.1 * P + 0.9 * P_list[-1])
                 K = sol[m*m:].reshape((n, m), order='F')
                 # print(K)
-                K_list.append(0.1 * K + 0.9 * K_list[-1])
-                # K_list.append(K)
+                # K_list.append(0.1 * K + 0.9 * K_list[-1])
+                K_list.append(K)
                 # if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:  # Ignore some bad cases
                 #     print("Ignoring overly diverging P, K solutions")
                 #     del P_list[-1]
@@ -162,18 +165,7 @@ class Sim:
         P_list, K_list = self.iteration(x0, clipping, dyn, constraint_P, constraint_K, tol)
         t = 0
         x = x0
-        # K, _, _ = lqr(model.A, model.B, model.Q, model.R) # This is standard LQR result
-        # DC-Motor (LQR results)
-        # K : array([[0.00772631, 0.41694259]])
-        # P : array([[0.04999624, 0.00386316],
-        #            [0.00386316, 0.2084713 ]])
-        # F-18 (LQR results)
-        # K : array([[1.29569582e-02, -1.59486715e-01, 2.80573531e-03, 4.45661101e-02],
-        #            [1.93568908e-04, -1.23264286e-02, -1.45409991e-04, -9.48189572e-03]])
-        # P : array([[1.47251758e-01, -1.81420801e+00, 3.18544776e-02, 5.04540680e-01],
-        #            [-1.81420801e+00, 5.27191154e+02, 3.99874533e+00, 5.04121432e+02],
-        #            [3.18544776e-02, 3.99874533e+00, 8.96117708e-02, 4.60378587e+00],
-        #            [5.04540680e-01, 5.04121432e+02, 4.60378587e+00, 5.18369240e+02]])
+
         K = K_list[-1]  # This is off policy result
         x_hist = x0  # (m, 1)
         u_hist = -K @ (x - x_ref)  # (n, 1)

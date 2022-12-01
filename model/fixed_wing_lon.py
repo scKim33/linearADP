@@ -17,7 +17,7 @@ class fixed_wing_lon:
         self.name = 'fixed_wing'
         # trim condition states, control inputs
         self.x_trim = loadmat('../dat/lin_data.mat')['x_trim_lon'].squeeze()
-        self.u_trim = loadmat('../dat/lin_data.mat')['u_trim'].squeeze()[0:2]
+        self.u_trim = np.array([loadmat('../dat/lin_data.mat')['delt_trim'].item(), 0])
         # x_ref default value : [0 0 0 0]
         perturbation = np.array([np.random.normal(0, 0.1 * self.x_trim[0]),
                                  np.random.normal(0, 0.1 * self.x_trim[1]),

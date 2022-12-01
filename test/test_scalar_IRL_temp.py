@@ -47,6 +47,10 @@ elif agent == "2" or "3":
     K_lqr, P_lqr, _ = lqr(model.A, model.B, model.Q, model.R)
     print("Norm difference of P_lqr and P_Kleinmann: {}".format(np.linalg.norm(P_list[-1] - P_lqr)))
     print("Norm difference of K_lqr and K_Kleinmann: {}".format(np.linalg.norm(K_list[-1] - K_lqr)))
+    # DC-Motor (LQR results)
+    # K : array([[0.00772631, 0.41694259]])
+    # P : array([[0.04999624, 0.00386316],
+    #            [0.00386316, 0.2084713 ]])
 
     plot(x_hist, u_hist, tspan, model.x_ref, [0], type='plot', x_shape=[2, 1], u_shape=[1, 1], x_label=['x1', 'x2'], u_label=['u1'])
     plot_P(P_list)

@@ -1,6 +1,6 @@
 import numpy as np
 
-from model.f18_lon import f18_lon
+from model.fixed_wing_lon import fixed_wing_lon
 from model.actuator import Actuator
 from sim.sim_IRL_onpolicy import Sim as Sim_on_policy_Kleinmann
 from sim.sim_IRL_offpolicy import Sim as Sim_off_policy_Kleinmann
@@ -10,14 +10,14 @@ from control import lqr
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
-x0 = np.array([[177.02],
-               [np.deg2rad(3.431)],
+x0 = np.array([[0.02],
+               [np.deg2rad(1.431)],
                [np.deg2rad(-1.09*1e-2)],
                [np.deg2rad(5.8*1e-3)]])\
-     - f18_lon().x_trim.reshape((4, 1)) # x_0 setting in progress report 1
+     - fixed_wing_lon().x_trim.reshape((4, 1))
 x_ref = None
 
-model = f18_lon(x0=x0, x_ref=x_ref)
+model = fixed_wing_lon(x0=x0, x_ref=x_ref)
 dyn = model.dynamics
 actuator = Actuator()
 u_constraint = np.array([[0 - model.u_trim[0], 1 - model.u_trim[0]],
@@ -58,13 +58,13 @@ elif agent == "2" or "3":
     K_lqr, P_lqr, _ = lqr(model.A, model.B, model.Q, model.R)
     print("Norm difference of P_lqr and P_Kleinmann: {}".format(np.linalg.norm(P_list[-1] - P_lqr)))
     print("Norm difference of K_lqr and K_Kleinmann: {}".format(np.linalg.norm(K_list[-1] - K_lqr)))
-    # F-18 (LQR results)
-    # K : array([[1.29569582e-02, -1.59486715e-01, 2.80573531e-03, 4.45661101e-02],
-    #            [1.93568908e-04, -1.23264286e-02, -1.45409991e-04, -9.48189572e-03]])
-    # P : array([[1.47251758e-01, -1.81420801e+00, 3.18544776e-02, 5.04540680e-01],
-    #            [-1.81420801e+00, 5.27191154e+02, 3.99874533e+00, 5.04121432e+02],
-    #            [3.18544776e-02, 3.99874533e+00, 8.96117708e-02, 4.60378587e+00],
-    #            [5.04540680e-01, 5.04121432e+02, 4.60378587e+00, 5.18369240e+02]])
+    # Fixed-wing (LQR results)
+    # K : array([[ 1.14267602e-01, -2.25964079e-01,  1.48497910e-01,  2.33960105e-01],
+    #            [-1.13995087e-04,  8.92630120e-05, -1.58315160e-03, -5.75454352e-03]])
+    # P : array([[  2.26683777,  -4.4918347 ,   2.57553486,   3.13112153],
+    #            [ -4.4918347 ,  51.62423059,  -2.17686125,  39.66228074],
+    #            [  2.57553486,  -2.17686125,  36.48145093, 133.50374551],
+    #            [  3.13112153,  39.66228074, 133.50374551, 568.12022155]])
 
     plot(x_hist, u_hist, tspan, x_ref_for_plot, u_ref_for_plot, type='plot', x_shape=[2, 2], u_shape=[2, 1], x_label=['$V$ (m / s)', '$\\alpha$ (deg)', '$q$ (deg / s)', '$\gamma$ (deg)'], u_label=['$\delta_T$', '$\delta_e$ (deg)'])
     plot_P(P_list)
