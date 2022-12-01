@@ -91,3 +91,11 @@ def plot_w(w_hist, tspan):
     plt.legend(loc='upper right')
 
     plt.show()
+
+def plot_cond(cond_list):
+    t = range(len(cond_list))
+    plt.figure()
+    plt.plot(t, cond_list)
+    plt.yscale('log', base=10)
+    plt.grid()
+    plt.show()

@@ -5,7 +5,7 @@ from model.actuator import Actuator
 from sim.sim_IRL_onpolicy import Sim as Sim_on_policy_Kleinmann
 from sim.sim_IRL_offpolicy import Sim as Sim_off_policy_Kleinmann
 from sim.sim_IRL_temp import Sim as Sim_on_policy_IRL
-from utils import plot, plot_K, plot_P, plot_w
+from utils import *
 from control import lqr
 
 # Initial value and simulation time setting
@@ -23,7 +23,7 @@ model = dc_motor(x0=x0, x_ref=x_ref)
 dyn = model.dynamics
 actuator = Actuator()
 u_constraint = np.array([[-20, 20]])
-agent = "3"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
+agent = "2"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
 
 t_end = 10
 t_step = 0.1
@@ -35,10 +35,10 @@ if agent == "1":
     x_hist, u_hist, w_hist = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, iteration='pi', tol=1e3)
 if agent == "2":
     sim = Sim_on_policy_Kleinmann(actuator=actuator, model=model)
-    x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=1e-3)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=1e-3)
 elif agent == "3":
     sim = Sim_off_policy_Kleinmann(actuator=actuator, model=model)
-    x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=1e1)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=1e1)
 
 if agent == "1":
     plot(x_hist, u_hist, tspan, model.x_ref, [0], type='plot', x_shape=[2, 1], u_shape=[1, 1], x_label=['x1', 'x2'], u_label=['u1'])
@@ -55,3 +55,4 @@ elif agent == "2" or "3":
     plot(x_hist, u_hist, tspan, model.x_ref, [0], type='plot', x_shape=[2, 1], u_shape=[1, 1], x_label=['x1', 'x2'], u_label=['u1'])
     plot_P(P_list)
     plot_K(K_list)
+    plot_cond(cond_list)

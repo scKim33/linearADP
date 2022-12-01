@@ -5,7 +5,7 @@ from model.actuator import Actuator
 from sim.sim_IRL_onpolicy import Sim as Sim_on_policy_Kleinmann
 from sim.sim_IRL_offpolicy import Sim as Sim_off_policy_Kleinmann
 from sim.sim_IRL_temp import Sim as Sim_on_policy_IRL
-from utils import plot, plot_K, plot_P, plot_w
+from utils import *
 from control import lqr
 
 # Initial value and simulation time setting
@@ -37,7 +37,7 @@ if agent == "2":
     x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=1e5, constraint_K=1e3, tol=5e2)
 elif agent == "3":
     sim = Sim_off_policy_Kleinmann(actuator=actuator, model=model)
-    x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=1e6, constraint_K=1e3, tol=1e4)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=1e6, constraint_K=1e3, tol=1e5)
 
 # Plot the results
 x_ref_for_plot = [model.x_trim[0],
@@ -69,3 +69,4 @@ elif agent == "2" or "3":
     plot(x_hist, u_hist, tspan, x_ref_for_plot, u_ref_for_plot, type='plot', x_shape=[2, 2], u_shape=[2, 1], x_label=['$V$ (m / s)', '$\\alpha$ (deg)', '$q$ (deg / s)', '$\gamma$ (deg)'], u_label=['$\delta_T$', '$\delta_e$ (deg)'])
     plot_P(P_list)
     plot_K(K_list)
+    plot_cond(cond_list)
