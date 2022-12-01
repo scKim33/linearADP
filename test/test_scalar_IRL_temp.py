@@ -38,7 +38,7 @@ if agent == "2":
     x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=1e-3)
 elif agent == "3":
     sim = Sim_off_policy_Kleinmann(actuator=actuator, model=model)
-    x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=1e-4)
+    x_hist, u_hist, P_list, K_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=1e1)
 
 if agent == "1":
     plot(x_hist, u_hist, tspan, model.x_ref, [0], type='plot', x_shape=[2, 1], u_shape=[1, 1], x_label=['x1', 'x2'], u_label=['u1'])

@@ -42,7 +42,10 @@ class Sim:
         m = self.m
         model = self.model
         P_list = []  # P_0, P_1, ... len of k
+        P_compute = []
         K_list = []  # K_0, K_1, ... len of k+1
+        P = np.zeros((m, m))
+        P_list.append(P)
         K = 0.0001 * np.random.randn(n, m)  # Initial gain matrix
         K_list.append(K)
         k = 0
@@ -52,8 +55,8 @@ class Sim:
 
             rank = 0
             t_lk = 0
-            t_step_on_loop = 0.002
-            delta_idx = 50  # index jumping at t_lk
+            t_step_on_loop = 0.0001
+            delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
             Theta = None
             Xi = None
             x_list = None  # (m, 1)
@@ -69,7 +72,9 @@ class Sim:
                 # x_list = np.hstack((x_list, np.random.randn(m,1)))
                 # x_list = np.hstack((x_list, np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
                 x_list = np.hstack((x_list, np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0)) if x_list is not None else np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0
-                u0_list = np.hstack((u0_list, 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1)))) if u0_list is not None else 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
+                # u0_list = np.hstack((u0_list, 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1)))) if u0_list is not None else 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
+                a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                u0_list = np.hstack((u0_list, 1000 * np.linalg.inv(self.model.R) @ np.sin(a))) if u0_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
                 fx1_list = np.kron(x_list[:, -1].T, x_list[:, -1].T).reshape((1, m*m))  # (1, mm) # used for integral of theta_xx
                 fx2_list = np.kron(x_list[:, -1].T, u0_list[:, -1].T).reshape((1, m*n))  # (1, 1) # used for integral of theta_xu
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
@@ -97,8 +102,8 @@ class Sim:
                     flag = False
                     print("Rank saturated")
                     break
-                print(rank)
                 rank = np.linalg.matrix_rank(Theta)
+                print(rank)
 
             # # Making symmetric matrix P, and gain matrix K
             # if flag:
@@ -126,21 +131,25 @@ class Sim:
             if flag:
                 sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
                 P = sol[:m*m].reshape((m, m))
-                P_list.append(P)
+                P_compute.append(P)
+                # P_list.append(P)
+                P_list.append(0.1 * P + 0.9 * P_list[-1])
                 K = sol[m*m:].reshape((n, m), order='F')
-                print(K)
-                K_list.append(K)
-                if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:  # Ignore some bad cases
-                    print("Ignoring overly diverging P, K solutions")
-                    del P_list[-1]
-                    del K_list[-1]
-                    continue
+                # print(K)
+                K_list.append(0.1 * K + 0.9 * K_list[-1])
+                # K_list.append(K)
+                # if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:  # Ignore some bad cases
+                #     print("Ignoring overly diverging P, K solutions")
+                #     del P_list[-1]
+                #     del K_list[-1]
+                #     continue
                 print(P)
                 k += 1
 
-            if len(P_list) >= 2:
-                # print(np.linalg.norm(P_list[-1] - P_list[-2]))
-                if np.linalg.norm(P_list[-1] - P_list[-2]) < tol:
+            if len(P_compute) >= 10:
+                P_avg = np.mean(np.stack(P_compute[-10:], axis=0), axis=0)
+                print(np.linalg.norm(np.max(np.stack(P_compute[-10:], axis=0)) - np.min(np.stack(P_compute[-10:], axis=0))))
+                if np.linalg.norm(np.max(np.stack(P_compute[-10:], axis=0)) - np.min(np.stack(P_compute[-10:], axis=0))) < tol:
                     print("Total iterations : {}".format(k))
                     break
         return P_list, K_list
