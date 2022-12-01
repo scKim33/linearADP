@@ -114,7 +114,7 @@ class Sim:
                 pi = self.pi(x_list[:, -1 - delta_idx].reshape((m, 1))) - self.pi(x_list[:, -1].reshape((m, 1)))
                 Pi = np.vstack((Pi, pi.T)) if Pi is not None else pi.T
                 R = np.vstack((R, r)) if R is not None else r
-
+            cond = np.linalg.cond(Pi)
             print(np.linalg.cond(Pi))
             w, _, _, _ = np.linalg.lstsq(Pi, R)
             w_list = np.hstack((w_list, w)) if w_list is not None else w
@@ -125,7 +125,7 @@ class Sim:
                     print("Total iterations : {}".format(j))
                     break
 
-        return w_list[:, -1].reshape((num_w, 1))
+        return w_list[:, -1].reshape((num_w, 1)), cond
 
     def value_iteration(self, dyn, x, w, clipping, tol):
         m = self.m
@@ -165,7 +165,7 @@ class Sim:
                 R = np.vstack((R, r)) if R is not None else r
                 w_dot_pi = (w_list[:, 0].reshape((num_w, 1)).T @ Pi(x_list[:, -1])).reshape((1, 1))
                 W_Pi = np.vstack((W_Pi, w_dot_pi)) if W_Pi is not None else w_dot_pi
-
+            cond = np.linalg.cond(Pi)
             w, _, _, _ = np.linalg.lstsq(Pi, R + W_Pi)
             w_list = np.hstack((w_list, w)) if w_list is not None else w
             j += 1
@@ -175,7 +175,7 @@ class Sim:
                     print("Total iterations : {}".format(j))
                     break
 
-        return w_list[:, -1].reshape((num_w, 1))
+        return w_list[:, -1].reshape((num_w, 1)), cond
 
     def sim(self, t_end, t_step, dyn, x0, x_ref, clipping=None, iteration='pi', tol='1e3'):
         m = self.m
@@ -188,14 +188,16 @@ class Sim:
         x_hist = x0  # (m, 1)
         u_hist = np.zeros((n, 1))  # (n, 1)
         w_hist = 0.01 * np.random.randn(num_w, 1)
+        cond_list = []
         while True:
             if np.isclose(t, t_end):
                 break
 
             if iteration == "pi":
-                w = self.policy_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)), clipping, tol)
+                w, cond = self.policy_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)), clipping, tol)
             elif iteration == "vi":
-                w = self.value_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)), clipping, tol)
+                w, cond = self.value_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)), clipping, tol)
+            cond_list.append(cond)
             dv = (w.T @ self.dpi_dx(x_hist[:, -1].reshape((m, 1)))).reshape((m, 1))
             u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv  # (n, 1)
             u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
@@ -210,7 +212,7 @@ class Sim:
 
             t = t + t_step
             print(t)
-        return x_hist, u_hist, w_hist  # (m, time_seq), (n, time_seq)
+        return x_hist, u_hist, w_hist, cond_list  # (m, time_seq), (n, time_seq)
 
 def sim_IRL(t_end, t_step, model, actuator, dyn, x0, x_ref, clipping=None, u_is_scalar=False, method=None, actuator_status=False):
 
