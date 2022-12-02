@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.integrate import odeint
+from control import lqr
 
 class Sim:
     def __init__(self,
@@ -64,7 +65,7 @@ class Sim:
             Xi = None
             x_list = None  # (m, 1)
             u0_list = None
-            count = 0
+            rank_saturated_count = 0
             flag = True
             theta_xx = None
             theta_xu = None
@@ -104,8 +105,8 @@ class Sim:
                 Xi = -theta_xx @ Q.reshape((m*m, 1))    # size of (rows, 1)
 
                 if np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) == rank:
-                    count += 1
-                if count >= 5:
+                    rank_saturated_count += 1
+                if rank_saturated_count >= 5:
                     flag = False
                     print("Rank saturated")
                     break
@@ -169,12 +170,14 @@ class Sim:
         m = self.m
         n = self.n
         model = self.model
+        K_opt, _, _ = lqr(model.A, model.B, model.Q, model.R)
 
         P_list, K_list, cond_list = self.iteration(x0, clipping, dyn, constraint_P, constraint_K, tol)
         t = 0
         x = x0
 
         K = K_list[-1]
+        print(np.linalg.norm(K - K_opt) / np.linalg.norm(K_opt) * 1e2, "% difference with optimal solution)")
         x_hist = x0  # (m, 1)
         u_hist = -K @ (x - x_ref)  # (n, 1)
         while True:

@@ -8,6 +8,7 @@ from sim.sim_IRL_temp import Sim as Sim_on_policy_IRL
 from utils import *
 from control import lqr
 
+# np.random.seed(1)
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
 x0 = np.array([[4],
@@ -23,7 +24,7 @@ model = dc_motor(x0=x0, x_ref=x_ref)
 dyn = model.dynamics
 actuator = Actuator()
 u_constraint = np.array([[-20, 20]])
-agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
+agent = "2"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
 # kleinmann coef e 1, 1
 t_end = 10
 t_step = 0.1

@@ -8,6 +8,7 @@ from sim.sim_IRL_temp import Sim as Sim_on_policy_IRL
 from utils import *
 from control import lqr
 
+# np.random.seed(0)
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
 x0 = np.array([[177.02],
