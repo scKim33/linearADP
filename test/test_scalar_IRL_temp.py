@@ -23,8 +23,8 @@ model = dc_motor(x0=x0, x_ref=x_ref)
 dyn = model.dynamics
 actuator = Actuator()
 u_constraint = np.array([[-20, 20]])
-agent = "2"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
-
+agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
+# kleinmann coef e 1, 1
 t_end = 10
 t_step = 0.1
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
@@ -32,7 +32,7 @@ tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 # Do simulation
 if agent == "1":
     sim = Sim_on_policy_IRL(actuator=actuator, model=model)
-    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, iteration='pi', tol=1e4)
+    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, iteration='pi', tol=1e2)
 if agent == "2":
     sim = Sim_on_policy_Kleinmann(actuator=actuator, model=model)
     x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=5e-1)
@@ -44,6 +44,7 @@ if agent == "1":
     plot(x_hist, u_hist, tspan, model.x_ref, [0], type='plot', x_shape=[2, 1], u_shape=[1, 1], x_label=['x1', 'x2'], u_label=['u1'])
     plot_w(w_hist, tspan)
     plot_cond(cond_list)
+    plt.show()
 elif agent == "2" or "3":
     K_lqr, P_lqr, _ = lqr(model.A, model.B, model.Q, model.R)
     print("Norm difference of P_lqr and P_Kleinmann: {}".format(np.linalg.norm(P_list[-1] - P_lqr)))
@@ -57,3 +58,4 @@ elif agent == "2" or "3":
     plot_P(P_list)
     plot_K(K_list)
     plot_cond(cond_list)
+    plt.show()

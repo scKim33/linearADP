@@ -34,8 +34,6 @@ def plot(x_hist, u_hist, tspan, x_ref, u_ref, type='plot', x_shape=None, u_shape
         plt.ylabel(r'{}'.format(u_label[i]))
         plt.title('Control trajectory')
 
-    plt.show()
-
 def plot_P(Matrix_list):
     iters = len(Matrix_list)
     m = Matrix_list[0].shape[0]
@@ -54,8 +52,6 @@ def plot_P(Matrix_list):
     plt.xlabel('Iteration')
     plt.grid()
     plt.legend(loc='upper right')
-
-    plt.show()
 
 def plot_K(Matrix_list):
     iters = len(Matrix_list)
@@ -77,8 +73,6 @@ def plot_K(Matrix_list):
     plt.grid()
     plt.legend(loc='upper right')
 
-    plt.show()
-
 def plot_w(w_hist, tspan):
     num_w = w_hist.shape[0]
 
@@ -90,12 +84,9 @@ def plot_w(w_hist, tspan):
         plt.title('Weight History')
     plt.legend(loc='upper right')
 
-    plt.show()
-
 def plot_cond(cond_list):
     t = range(len(cond_list))
     plt.figure()
     plt.plot(t, cond_list)
     plt.yscale('log', base=10)
     plt.grid()
-    plt.show()

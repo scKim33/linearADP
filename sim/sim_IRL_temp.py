@@ -88,23 +88,30 @@ class Sim:
 
         j = 0
         t = 0
-        t_step_on_loop = 0.002
-        delta_idx = 5  # index jumping at t_lk
+        t_step_on_loop = 0.0001
+        delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
+        e_choice = '2'
 
-        x_list = x
+        x_list = None
         u_list = None
-        w_list = None
+        w_list = w
         while True:
             Pi = None
             R = None
             while np.linalg.matrix_rank(Pi) < num_w if Pi is not None else True:  # constructing each row of matrix Theta, Xi
+                x_list = np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x
                 for _ in range(delta_idx):
                     dv = (w.T @ self.dpi_dx(x_list[:, -1].reshape((m, 1)))).reshape((m, 1))
-                    e = np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
+                    if e_choice == '1':
+                        e = 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
+                    elif e_choice == '2':
+                        a = np.array([20 * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                        e = 1 * np.linalg.inv(self.model.R) @ np.sin(a)
                     u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv + e  # (n, 1)
-                    u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
-                        (n, 1))  # control input after passing actuator (n, 1)
-                    u = self.clipping_u(u, clipping)  # control input constraint
+                    print(u)
+                    # u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
+                    #     (n, 1))  # control input after passing actuator (n, 1)
+                    # u = self.clipping_u(u, clipping)  # control input constraint
 
                     y = odeint(dyn, x_list[:, -1].reshape(m,), [t, t + t_step_on_loop], args=(u.reshape((n,)),))
                     x_list = np.hstack((x_list, y[-1, :].reshape((m, 1))))
@@ -115,9 +122,11 @@ class Sim:
                 Pi = np.vstack((Pi, pi.T)) if Pi is not None else pi.T
                 R = np.vstack((R, r)) if R is not None else r
             cond = np.linalg.cond(Pi)
-            print(np.linalg.cond(Pi))
             w, _, _, _ = np.linalg.lstsq(Pi, R)
-            w_list = np.hstack((w_list, w)) if w_list is not None else w
+            # w_list = np.hstack((w_list, 0.9 * w_list[:, -1] + 0.1 * w))
+            w_list = np.hstack((w_list, w))
+            print(Pi)
+            print(w)
             j += 1
 
             if w_list.shape[1] >= 2:
@@ -145,15 +154,14 @@ class Sim:
             Pi = None
             R = None
             W_Pi = None
-            while np.linalg.matrix_rank(
-                    Pi) < num_w if Pi is not None else True:  # constructing each row of matrix Theta, Xi
+            while np.linalg.matrix_rank(Pi) < num_w if Pi is not None else True:  # constructing each row of matrix Theta, Xi
                 for _ in range(delta_idx):
                     dv = (w.T @ self.dpi_dx(x_list[:, -1].reshape((m, 1)))).reshape((m, 1))
                     e = np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
                     u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv + e  # (n, 1)
-                    u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
-                        (n, 1))  # control input after passing actuator (n, 1)
-                    u = self.clipping_u(u, clipping)  # control input constraint
+                    # u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
+                    #     (n, 1))  # control input after passing actuator (n, 1)
+                    # u = self.clipping_u(u, clipping)  # control input constraint
 
                     y = odeint(dyn, x_list[:, -1].reshape(m, ), [t, t + t_step_on_loop], args=(u.reshape((n,)),))
                     x_list = np.hstack((x_list, y[-1, :].reshape((m, 1))))
@@ -163,9 +171,10 @@ class Sim:
                 pi = self.pi(x_list[:, -1 - delta_idx].reshape((m, 1))) - self.pi(x_list[:, -1].reshape((m, 1)))
                 Pi = np.vstack((Pi, pi.T)) if Pi is not None else pi.T
                 R = np.vstack((R, r)) if R is not None else r
-                w_dot_pi = (w_list[:, 0].reshape((num_w, 1)).T @ Pi(x_list[:, -1])).reshape((1, 1))
+                w_dot_pi = (w_list[:, 0].reshape((num_w, 1)).T @ self.pi(x_list[:, -1].reshape((m, 1)))).reshape((1, 1))
                 W_Pi = np.vstack((W_Pi, w_dot_pi)) if W_Pi is not None else w_dot_pi
             cond = np.linalg.cond(Pi)
+            print(cond)
             w, _, _, _ = np.linalg.lstsq(Pi, R + W_Pi)
             w_list = np.hstack((w_list, w)) if w_list is not None else w
             j += 1
@@ -187,7 +196,7 @@ class Sim:
         x = x0
         x_hist = x0  # (m, 1)
         u_hist = np.zeros((n, 1))  # (n, 1)
-        w_hist = 0.01 * np.random.randn(num_w, 1)
+        w_hist = 0.0001 * np.random.randn(num_w, 1)
         cond_list = []
         while True:
             if np.isclose(t, t_end):

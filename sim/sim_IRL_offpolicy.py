@@ -58,6 +58,8 @@ class Sim:
             t_lk = 0
             t_step_on_loop = 0.0001
             delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
+            print(delta_idx)
+            print("k = {}".format(k))
             Theta = None
             Xi = None
             x_list = None  # (m, 1)
@@ -67,19 +69,23 @@ class Sim:
             theta_xx = None
             theta_xu = None
             delta_xx = None
+            u0_choice = '1'
 
             # while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
             while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
                 # x_list = np.hstack((x_list, np.random.randn(m,1)))
                 # x_list = np.hstack((x_list, np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
                 x_list = np.hstack((x_list, np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0)) if x_list is not None else np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0
-                # u0_list = np.hstack((u0_list, 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1)))) if u0_list is not None else 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
-                a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
-                u0_list = np.hstack((u0_list, 1000 * np.linalg.inv(self.model.R) @ np.sin(a))) if u0_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
+                if u0_choice == '1':
+                    u0_list = np.hstack((u0_list, 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1)))) if u0_list is not None else 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
+                elif u0_choice == '2':
+                    a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                    u0_list = np.hstack((u0_list, 1000 * np.linalg.inv(self.model.R) @ np.sin(a))) if u0_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
                 fx1_list = np.kron(x_list[:, -1].T, x_list[:, -1].T).reshape((1, m*m))  # (1, mm) # used for integral of theta_xx
                 fx2_list = np.kron(x_list[:, -1].T, u0_list[:, -1].T).reshape((1, m*n))  # (1, 1) # used for integral of theta_xu
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
                     u = u0_list[:, -1].reshape((n, 1))
+                    print(u)
                     y = odeint(dyn, x_list[:, -1].reshape((m,)), [t_lk, t_lk + t_step_on_loop],
                                args=(u.reshape(n, ),))  # size of (2, n)
 
@@ -104,7 +110,6 @@ class Sim:
                     print("Rank saturated")
                     break
                 rank = np.linalg.matrix_rank(Theta)
-                print(rank)
             cond_list.append(np.linalg.cond(np.hstack([theta_xx, theta_xu])))
             # # Making symmetric matrix P, and gain matrix K
             # if flag:
@@ -169,7 +174,7 @@ class Sim:
         t = 0
         x = x0
 
-        K = K_list[-1]  # This is off policy result
+        K = K_list[-1]
         x_hist = x0  # (m, 1)
         u_hist = -K @ (x - x_ref)  # (n, 1)
         while True:

@@ -22,7 +22,7 @@ dyn = model.dynamics
 actuator = Actuator()
 u_constraint = np.array([[0 - model.u_trim[0], 1 - model.u_trim[0]],
                          [np.deg2rad(-20), np.deg2rad(20)]])
-agent = "3"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
+agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
 
 t_end = 50
 t_step = 0.02
@@ -31,7 +31,7 @@ tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 # Do simulation
 if agent == "1":
     sim = Sim_on_policy_IRL(actuator=actuator, model=model)
-    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, iteration='pi', tol=1e3)
+    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, iteration='pi', tol=1e6)
 if agent == "2":
     sim = Sim_on_policy_Kleinmann(actuator=actuator, model=model)
     x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=1e5, constraint_K=1e3, tol=5e2)
@@ -55,6 +55,7 @@ if agent == "1":
     plot(x_hist, u_hist, tspan, x_ref_for_plot, u_ref_for_plot, type='plot', x_shape=[2, 2], u_shape=[2, 1], x_label=['$V$ (m / s)', '$\\alpha$ (deg)', '$q$ (deg / s)', '$\gamma$ (deg)'], u_label=['$\delta_T$', '$\delta_e$ (deg)'])
     plot_w(w_hist, tspan)
     plot_cond(cond_list)
+    plt.show()
 elif agent == "2" or "3":
     K_lqr, P_lqr, _ = lqr(model.A, model.B, model.Q, model.R)
     print("Norm difference of P_lqr and P_Kleinmann: {}".format(np.linalg.norm(P_list[-1] - P_lqr)))
@@ -71,3 +72,4 @@ elif agent == "2" or "3":
     plot_P(P_list)
     plot_K(K_list)
     plot_cond(cond_list)
+    plt.show()

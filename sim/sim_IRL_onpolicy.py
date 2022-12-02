@@ -56,39 +56,45 @@ class Sim:
 
             rank = 0
             t_lk = 0
-            t_step_on_loop = 0.002
-            delta_idx = 50  # index jumping at t_lk
+            t_step_on_loop = 0.0001
+            delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
+            print(delta_idx)
+            print("k = {}".format(k))
             Theta = None
             Xi = None
             x_list = None  # (m, 1)
             e_list = None
             count = 0
             flag = True
+            e_choice = '1'
 
             # while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
             while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
                 # x_list = np.hstack((x_list, np.random.randn(m,1)))
                 # x_list = np.hstack((x_list, np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
                 x_list = np.hstack((x_list, np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0)) if x_list is not None else np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0
-                # e_list = np.hstack((e_list, np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1)))) if e_list is not None else np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
-                a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
-                e_list = np.hstack((e_list, 1000 * np.linalg.inv(self.model.R) @ np.sin(a))) if e_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
+                if e_choice == '1':
+                    e_list = np.hstack((e_list, 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1)))) if e_list is not None else np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
+                elif e_choice == '2':
+                    a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                    e_list = np.hstack((e_list, 1 * np.linalg.inv(self.model.R) @ np.sin(a))) if e_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
                 fx1_list = np.kron(x_list[:, -1], e_list[:, -1].T @ model.R)  # (1, mn) # used for integral of Theta, Xi matrix # t_lk
                 fx2_list = (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape((1, 1))  # (1, 1)
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
                     u = -K_list[-1] @ x_list[:, -1].reshape((m, 1)) + e_list[:, -1].reshape((n, 1))  # (n, 1)
+                    print(u)
                     y = odeint(dyn, x_list[:, -1].reshape((m,)), [t_lk, t_lk + t_step_on_loop],
                                args=(u.reshape(n, ),))  # size of (2, n)
 
                     x_list = np.hstack((x_list, y[-1, :].reshape((m, 1))))
-                    # e = np.hstack((e_list, 0.1 * np.zeros((n, 1))))
-                    # e_list = np.hstack((e_list, np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))))
-                    a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
-                    e_list = np.hstack((e_list, 1000 * np.linalg.inv(self.model.R) @ np.sin(a)))
+                    if e_choice == '1':
+                        e_list = np.hstack((e_list, 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))))
+                    elif e_choice == '2':
+                        a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                        e_list = np.hstack((e_list, 1 * np.linalg.inv(self.model.R) @ np.sin(a)))
 
                     fx1_list = np.vstack((fx1_list, np.kron(x_list[:, -1].T, e_list[:, -1].T @ model.R)))  # size of (delta_idx+1, mn) after loop  # used for integral of Theta, Xi matrix
-                    fx2_list = np.vstack((fx2_list, (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape(
-                        (1, 1))))  # size of (delta_idx+1, 1) after loop
+                    fx2_list = np.vstack((fx2_list, (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape((1, 1))))  # size of (delta_idx+1, 1) after loop
                     t_lk = t_lk + t_step_on_loop
 
                 element_1 = (np.kron(x_list[:, -1].T, x_list[:, -1].T) - np.kron(x_list[:, -delta_idx - 1].T, x_list[:, -delta_idx - 1].T)).reshape((1, m * m))  # size of (1, mm)
@@ -103,7 +109,6 @@ class Sim:
                     flag = False
                     print("Rank saturated")
                     break
-                print(rank)
                 rank = np.linalg.matrix_rank(Theta)
             cond_list.append(np.linalg.cond(Theta))
             # # Making symmetric matrix P, and gain matrix K
@@ -170,19 +175,8 @@ class Sim:
         P_list, K_list, cond_list = self.iteration(x0, clipping, dyn, constraint_P, constraint_K, tol)
         t = 0
         x = x0
-        # K, _, _ = lqr(model.A, model.B, model.Q, model.R) # This is standard LQR result
-        # DC-Motor (LQR results)
-        # K : array([[0.00772631, 0.41694259]])
-        # P : array([[0.04999624, 0.00386316],
-        #            [0.00386316, 0.2084713 ]])
-        # F-18 (LQR results)
-        # K : array([[1.29569582e-02, -1.59486715e-01, 2.80573531e-03, 4.45661101e-02],
-        #            [1.93568908e-04, -1.23264286e-02, -1.45409991e-04, -9.48189572e-03]])
-        # P : array([[1.47251758e-01, -1.81420801e+00, 3.18544776e-02, 5.04540680e-01],
-        #            [-1.81420801e+00, 5.27191154e+02, 3.99874533e+00, 5.04121432e+02],
-        #            [3.18544776e-02, 3.99874533e+00, 8.96117708e-02, 4.60378587e+00],
-        #            [5.04540680e-01, 5.04121432e+02, 4.60378587e+00, 5.18369240e+02]])
-        K = K_list[-1]  # This is on policy result
+
+        K = K_list[-1]
         x_hist = x0  # (m, 1)
         u_hist = -K @ (x - x_ref)  # (n, 1)
         while True:
