@@ -11,29 +11,29 @@ from control import lqr
 # np.random.seed(0)
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
-# x0 = np.array([[177.02],
-#                [np.deg2rad(3.431)],
-#                [np.deg2rad(-1.09*1e-2)],
-#                [np.deg2rad(5.8*1e-3)]])\
-#      - f18_lon().x_trim.reshape((4, 1)) # x_0 setting in progress report 1
+x0 = np.array([[177.02],
+               [np.deg2rad(3.431)],
+               [np.deg2rad(-1.09*1e-2)],
+               [np.deg2rad(5.8*1e-3)]])\
+     - f18_lon().x_trim.reshape((4, 1)) # x_0 setting in progress report 1
 # x0 = np.array([[187.02],
 #                [np.deg2rad(0.41)],
 #                [np.deg2rad(9.09*1e-3)],
 #                [np.deg2rad(1.8*1e-2)]])\
 #      - f18_lon().x_trim.reshape((4, 1))
-x0 = np.array([[207.02],
-               [np.deg2rad(1.31)],
-               [np.deg2rad(1.09*1e-2)],
-               [np.deg2rad(-1.8*1e-2)]])\
-     - f18_lon().x_trim.reshape((4, 1))
+# x0 = np.array([[207.02],
+#                [np.deg2rad(1.31)],
+#                [np.deg2rad(1.09*1e-2)],
+#                [np.deg2rad(-1.8*1e-2)]])\
+#      - f18_lon().x_trim.reshape((4, 1))
 x_ref = None
 
 model = f18_lon(x0=x0, x_ref=x_ref)
 dyn = model.dynamics
 actuator = Actuator()
-u_constraint = np.array([[0 - model.u_trim[0], 1 - model.u_trim[0]],
+u_constraint = np.array([[0, 1],
                          [np.deg2rad(-20), np.deg2rad(20)]])
-agent = "3"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
+agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
 
 scaler = np.diag([0.5, 0.3])
 shift = np.array([[0.5], [0]])
@@ -45,13 +45,13 @@ tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 # Do simulation
 if agent == "1":
     sim = Sim_on_policy_IRL(actuator=None, model=model)
-    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=u_constraint, iteration='pi', tol=1e7)
+    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=None, iteration='pi', tol=1e1)
 if agent == "2":
     sim = Sim_on_policy_Kleinmann(actuator=None, model=model)
-    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=u_constraint, tol=1e5)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=None, tol=6e2)
 elif agent == "3":
     sim = Sim_off_policy_Kleinmann(actuator=None, model=model)
-    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, u0_shift=shift, u0_scaler=scaler, clipping=u_constraint, tol=1e5)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, u0_shift=shift, u0_scaler=scaler, clipping=None, tol=6e2)
 
 # Plot the results
 x_ref_for_plot = [model.x_trim[0],

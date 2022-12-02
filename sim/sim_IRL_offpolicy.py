@@ -8,14 +8,9 @@ class Sim:
                  model=None):
         self.actuator = actuator
         self.model = model
-        self.m = np.shape(self.model.A)[1]
-        self.n = np.shape(self.model.B)[1]
-
-        try:
-            if self.model == None:
-                raise
-        except:
-            print('Assign the model.')
+        if model is not None:
+            self.model = model
+            self.m, self.n = np.shape(self.model.B)
 
     def actuator_u(self, u_ctrl, enabling_index=0, t_step=0.1):
         if self.actuator is not None:
@@ -36,8 +31,8 @@ class Sim:
         return u  # (n, 1)
 
     def iteration(self, x0, clipping, dyn, u0_shift, u0_scaler, tol):
-        n = self.n
-        m = self.m
+        n, m = self.n, self.m
+
         model = self.model
         P_list = []  # P_0, P_1, ... len of k
         P_compute = []
@@ -45,37 +40,44 @@ class Sim:
         cond_list = []
         P = np.zeros((m, m))
         P_list.append(P)
-        K = 0.001 * np.random.randn(n, m)  # Initial gain matrix
+        K = 0.00 * np.random.randn(n, m)  # Initial gain matrix
+        self.K0 = K
         K_list.append(K)
-        k = 0
 
+        k = 0
+        t_step_on_loop = 0.001
+        # delta_idx = 10
+        # delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
         x_list = None  # (m, 1)
         u0_list = None
+        u0_choice = '1'
 
         while True:
             Q = model.Q + K_list[-1].T @ model.R @ K_list[-1]  # Q_k
 
             rank = 0
             t_lk = 0
-            t_step_on_loop = 0.0001
-            delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
-            print("k = {}".format(k))
             Theta = None
             Xi = None
-            rank_saturated_count = 0
-            flag = True
             theta_xx = None
             theta_xu = None
             delta_xx = None
-            u0_choice = '2'
+
+            rank_saturated_count = 0
+            flag = True
 
             # while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
             while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
                 # x_list = np.hstack((x_list, np.random.randn(m,1)))
                 # x_list = np.hstack((x_list, np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
-                x_list = np.hstack((x_list, np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0)) if x_list is not None else np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0
+                # x_list = np.hstack((x_list, np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0)) if x_list is not None else np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0
+                if x_list is not None:
+                    x_list = x_list[:, -1].reshape((m, 1))
+                else:
+                    x_list = x0
                 if u0_choice == '1':
-                    u0_list = np.hstack((u0_list, np.random.multivariate_normal(u0_shift.reshape((n,)), u0_scaler).reshape((n, 1)))) if u0_list is not None else np.random.multivariate_normal(u0_shift.reshape((n,)), u0_scaler).reshape((n, 1))
+                    u0_list = 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
+                    # u0_list = np.hstack((u0_list, np.random.multivariate_normal(u0_shift.reshape((n,)), u0_scaler).reshape((n, 1)))) if u0_list is not None else np.random.multivariate_normal(u0_shift.reshape((n,)), u0_scaler).reshape((n, 1))
                 elif u0_choice == '2':
                     a = np.array([20 * (i + 1) * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
                     u0_list = np.hstack((u0_list, u0_shift + u0_scaler @ np.sin(a))) if u0_list is not None else u0_shift + u0_scaler @ np.sin(a)
@@ -83,7 +85,6 @@ class Sim:
                 fx2_list = np.kron(x_list[:, -1].T, u0_list[:, -1].T).reshape((1, m*n))  # (1, 1) # used for integral of theta_xu
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
                     u = u0_list[:, -1].reshape((n, 1))
-                    # print(u)
                     y = odeint(dyn, x_list[:, -1].reshape((m,)), [t_lk, t_lk + t_step_on_loop],
                                args=(u.reshape(n, ),))  # size of (2, n)
 
