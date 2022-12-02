@@ -11,12 +11,12 @@ from control import lqr
 # np.random.seed(1)
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
-x0 = np.array([[4],
-               [2]])
+# x0 = np.array([[4],
+#                [2]])
 # x0 = np.array([[3],
 #                [-3]])
-# x0 = np.array([[-3],
-#                [-5]])
+x0 = np.array([[-3],
+               [-5]])
 x_ref = np.array([[0],
                   [0]])
 
@@ -24,22 +24,25 @@ model = dc_motor(x0=x0, x_ref=x_ref)
 dyn = model.dynamics
 actuator = Actuator()
 u_constraint = np.array([[-20, 20]])
-agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
-# kleinmann coef e 1, 1
-t_end = 10
+agent = "3"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
+
+scaler = np.diag([1])
+shift = np.array([[0]])
+
+t_end = 5
 t_step = 0.1
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 
 # Do simulation
 if agent == "1":
     sim = Sim_on_policy_IRL(actuator=actuator, model=model)
-    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, iteration='pi', tol=1e3)
+    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=u_constraint, iteration='pi', tol=1e-1)
 if agent == "2":
     sim = Sim_on_policy_Kleinmann(actuator=actuator, model=model)
-    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=5e-1)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=u_constraint, tol=5e-1)
 elif agent == "3":
     sim = Sim_off_policy_Kleinmann(actuator=actuator, model=model)
-    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, clipping=u_constraint, constraint_P=10, constraint_K=10, tol=5e-1)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, u0_shift=shift, u0_scaler=scaler, clipping=u_constraint, tol=5e-1)
 
 if agent == "1":
     plot(x_hist, u_hist, tspan, model.x_ref, [0], type='plot', x_shape=[2, 1], u_shape=[1, 1], x_label=['x1', 'x2'], u_label=['u1'])

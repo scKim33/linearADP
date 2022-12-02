@@ -80,7 +80,7 @@ class Sim:
         r = np.trapz(r_list, dx=dx)
         return r.reshape((1, 1))
 
-    def policy_iteration(self, dyn, x, w, clipping, tol):
+    def policy_iteration(self, dyn, x, w, e_shift, e_scaler, clipping, tol):
         m = self.m
         n = self.n
         model = self.model
@@ -88,15 +88,10 @@ class Sim:
 
         j = 0
         t = 0
-        t_step_on_loop = 0.0001
-        delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
+        t_step_on_loop = 0.05
+        delta_idx = 15
+        # delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
         e_choice = '2'
-        # dc motor
-        e_scaler = np.diag([1])
-        e_shift = np.array([[1]])
-        # f18
-        # e_scaler = np.diag([1, 1])
-        # e_shift = np.array([[0.5], [0]])
 
         x_list = None
         u_list = None
@@ -107,11 +102,11 @@ class Sim:
             while np.linalg.matrix_rank(Pi) < num_w if Pi is not None else True:  # constructing each row of matrix Theta, Xi
                 x_list = np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x
                 for _ in range(delta_idx):
-                    dv = (w.T @ self.dpi_dx(x_list[:, -1].reshape((m, 1)))).reshape((m, 1))
+                    dv = (w_list[:, -1].reshape((num_w, 1)).T @ self.dpi_dx(x_list[:, -1].reshape((m, 1)))).reshape((m, 1))
                     if e_choice == '1':
-                        e = np.random.multivariate_normal(e_shift, e_scaler).reshape((n, 1))
+                        e = np.random.multivariate_normal(e_shift.reshape((n,)), e_scaler).reshape((n, 1))
                     elif e_choice == '2':
-                        a = np.array([200 * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                        a = np.array([20 * (i + 1) * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
                         e = e_shift + e_scaler @ np.sin(a)
                     u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv + e  # (n, 1)
                     # print(u)
@@ -132,8 +127,10 @@ class Sim:
             # w_list = np.hstack((w_list, 0.9 * w_list[:, -1] + 0.1 * w))
             w_list = np.hstack((w_list, w))
             j += 1
+            # print(w)
 
             if w_list.shape[1] >= 10:
+                # print(np.linalg.norm(np.max(w_list[:, -10:], axis=1) - np.min(w_list[:, -10:], axis=1)))
                 if np.linalg.norm(np.max(w_list[:, -10:], axis=1) - np.min(w_list[:, -10:], axis=1)) < tol:
                     print("Total iterations : {}".format(j))
                     print(w_list[:, -1])
@@ -141,7 +138,7 @@ class Sim:
 
         return w_list[:, -1].reshape((num_w, 1)), cond
 
-    def value_iteration(self, dyn, x, w, clipping, tol):
+    def value_iteration(self, dyn, x, w, e_shift, e_scaler, clipping, tol):
         m = self.m
         n = self.n
         model = self.model
@@ -149,11 +146,12 @@ class Sim:
 
         j = 0
         t = 0
-        t_step_on_loop = 0.0001
-        delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
-        e_choice = '1'
+        t_step_on_loop = 0.05
+        delta_idx = 15
+        # delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
+        e_choice = '2'
 
-        x_list = x
+        x_list = None
         u_list = None
         w_list = w
         while True:
@@ -161,14 +159,16 @@ class Sim:
             R = None
             W_Pi = None
             while np.linalg.matrix_rank(Pi) < num_w if Pi is not None else True:  # constructing each row of matrix Theta, Xi
+                x_list = np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x
                 for _ in range(delta_idx):
                     dv = (w.T @ self.dpi_dx(x_list[:, -1].reshape((m, 1)))).reshape((m, 1))
                     if e_choice == '1':
-                        e = 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
+                        e = np.random.multivariate_normal(e_shift.reshape((n,)), e_scaler).reshape((n, 1))
                     elif e_choice == '2':
-                        a = np.array([200 * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
-                        e = 1 * np.linalg.inv(self.model.R) @ np.sin(a)
+                        a = np.array([20 * (i + 1) * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                        e = e_shift + e_scaler @ np.sin(a)
                     u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv + e  # (n, 1)
+                    # print(u)
                     # u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
                     #     (n, 1))  # control input after passing actuator (n, 1)
                     # u = self.clipping_u(u, clipping)  # control input constraint
@@ -197,7 +197,7 @@ class Sim:
 
         return w_list[:, -1].reshape((num_w, 1)), cond
 
-    def sim(self, t_end, t_step, dyn, x0, x_ref, clipping=None, iteration='pi', tol='1e3'):
+    def sim(self, t_end, t_step, dyn, x0, x_ref, e_shift, e_scaler, clipping=None, iteration='pi', tol='1e3'):
         m = self.m
         n = self.n
         model = self.model
@@ -214,9 +214,9 @@ class Sim:
                 break
 
             if iteration == "pi":
-                w, cond = self.policy_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)), clipping, tol)
+                w, cond = self.policy_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)), e_shift, e_scaler, clipping, tol)
             elif iteration == "vi":
-                w, cond = self.value_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)), clipping, tol)
+                w, cond = self.value_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)), e_shift, e_scaler, clipping, tol)
             cond_list.append(cond)
             dv = (w.T @ self.dpi_dx(x_hist[:, -1].reshape((m, 1)))).reshape((m, 1))
             u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv  # (n, 1)

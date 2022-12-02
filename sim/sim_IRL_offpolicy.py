@@ -38,7 +38,7 @@ class Sim:
                 u[i, 0] = np.clip(u_i, constraint[0], constraint[1])  # constraint of u
         return u  # (n, 1)
 
-    def iteration(self, x0, clipping, dyn, constraint_P, constraint_K, tol):
+    def iteration(self, x0, clipping, dyn, u0_shift, u0_scaler, tol):
         n = self.n
         m = self.m
         model = self.model
@@ -62,7 +62,6 @@ class Sim:
             t_lk = 0
             t_step_on_loop = 0.0001
             delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
-            print(delta_idx)
             print("k = {}".format(k))
             Theta = None
             Xi = None
@@ -72,12 +71,6 @@ class Sim:
             theta_xu = None
             delta_xx = None
             u0_choice = '1'
-            # dc motor
-            u0_scaler = np.diag([1])
-            u0_shift = np.array([[0]])
-            # f18
-            # u0_scaler = np.diag([1, 1])
-            # u0_shift = np.array([[0.5], [0]])
 
             # while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
             while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
@@ -85,15 +78,15 @@ class Sim:
                 # x_list = np.hstack((x_list, np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
                 x_list = np.hstack((x_list, np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0)) if x_list is not None else np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0
                 if u0_choice == '1':
-                    u0_list = np.hstack((u0_list, np.random.multivariate_normal(np.zeros(n), u0_scaler).reshape((n, 1)))) if u0_list is not None else np.random.multivariate_normal(np.zeros(n), u0_scaler).reshape((n, 1))
+                    u0_list = np.hstack((u0_list, np.random.multivariate_normal(u0_shift.reshape((n,)), u0_scaler).reshape((n, 1)))) if u0_list is not None else np.random.multivariate_normal(u0_shift.reshape((n,)), u0_scaler).reshape((n, 1))
                 elif u0_choice == '2':
-                    a = np.array([10 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
-                    u0_list = np.hstack((u0_list, u0_shift + u0_scaler @ np.sin(a))) if u0_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
+                    a = np.array([20 * (i + 1) * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                    u0_list = np.hstack((u0_list, u0_shift + u0_scaler @ np.sin(a))) if u0_list is not None else u0_shift + u0_scaler @ np.sin(a)
                 fx1_list = np.kron(x_list[:, -1].T, x_list[:, -1].T).reshape((1, m*m))  # (1, mm) # used for integral of theta_xx
                 fx2_list = np.kron(x_list[:, -1].T, u0_list[:, -1].T).reshape((1, m*n))  # (1, 1) # used for integral of theta_xu
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
                     u = u0_list[:, -1].reshape((n, 1))
-                    print(u)
+                    # print(u)
                     y = odeint(dyn, x_list[:, -1].reshape((m,)), [t_lk, t_lk + t_step_on_loop],
                                args=(u.reshape(n, ),))  # size of (2, n)
 
@@ -173,13 +166,13 @@ class Sim:
                     break
         return P_list, K_list, cond_list
 
-    def sim(self, t_end, t_step, dyn, x0, x_ref, clipping=None, constraint_P=1e5, constraint_K=1e2, tol=1e-3):
+    def sim(self, t_end, t_step, dyn, x0, x_ref, u0_shift, u0_scaler, clipping=None, tol=1e-3):
         m = self.m
         n = self.n
         model = self.model
         K_opt, _, _ = lqr(model.A, model.B, model.Q, model.R)
 
-        P_list, K_list, cond_list = self.iteration(x0, clipping, dyn, constraint_P, constraint_K, tol)
+        P_list, K_list, cond_list = self.iteration(x0, clipping, dyn, u0_scaler, u0_shift, tol)
         t = 0
         x = x0
 

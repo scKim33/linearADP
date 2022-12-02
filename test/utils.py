@@ -73,14 +73,15 @@ def plot_K(Matrix_list):
     plt.grid()
     plt.legend(loc='upper right')
 
-def plot_w(w_hist, tspan):
+def plot_w(w_hist, iter):
     num_w = w_hist.shape[0]
+    iter = w_hist.shape[1]
 
     plt.figure()
     for i in range(num_w):
-        plt.plot(tspan, w_hist[i, :], linewidth=1.2, label=r'w({})'.format(i+1))
+        plt.plot(range(iter), w_hist[i, :], linewidth=1.2, label=r'w({})'.format(i+1))
         plt.grid()
-        plt.xlim([tspan[0], tspan[-1]])
+        plt.xlim([0, iter])
         plt.title('Weight History')
     plt.legend(loc='upper right')
 
