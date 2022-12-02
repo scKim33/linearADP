@@ -81,7 +81,6 @@ class Sim:
                 fx2_list = (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape((1, 1))  # (1, 1)
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
                     u = -K_list[-1] @ x_list[:, -1].reshape((m, 1)) + e_list[:, -1].reshape((n, 1))  # (n, 1)
-                    print(u)
                     y = odeint(dyn, x_list[:, -1].reshape((m,)), [t_lk, t_lk + t_step_on_loop],
                                args=(u.reshape(n, ),))  # size of (2, n)
 
