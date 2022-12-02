@@ -91,6 +91,12 @@ class Sim:
         t_step_on_loop = 0.0001
         delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
         e_choice = '2'
+        # dc motor
+        e_scaler = np.diag([1])
+        e_shift = np.array([[1]])
+        # f18
+        # e_scaler = np.diag([1, 1])
+        # e_shift = np.array([[0.5], [0]])
 
         x_list = None
         u_list = None
@@ -103,10 +109,10 @@ class Sim:
                 for _ in range(delta_idx):
                     dv = (w.T @ self.dpi_dx(x_list[:, -1].reshape((m, 1)))).reshape((m, 1))
                     if e_choice == '1':
-                        e = 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
+                        e = np.random.multivariate_normal(e_shift, e_scaler).reshape((n, 1))
                     elif e_choice == '2':
                         a = np.array([200 * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
-                        e = 1 * np.linalg.inv(self.model.R) @ np.sin(a)
+                        e = e_shift + e_scaler @ np.sin(a)
                     u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv + e  # (n, 1)
                     # print(u)
                     # u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(

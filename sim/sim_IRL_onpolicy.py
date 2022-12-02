@@ -69,7 +69,13 @@ class Sim:
 
             rank_saturated_count = 0
             flag = True
-            e_choice = '1'
+            e_choice = '2'
+            # dc motor
+            e_scaler = np.diag([1])
+            e_shift = np.array([[1]])
+            # f18
+            # e_scaler = np.diag([1, 1])
+            # e_shift = np.array([[0.5], [0]])
 
             # while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
             while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
@@ -77,10 +83,10 @@ class Sim:
                 # x_list = np.hstack((x_list, np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
                 x_list = np.hstack((x_list, np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0)) if x_list is not None else np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0
                 if e_choice == '1':
-                    e_list = np.hstack((e_list, 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1)))) if e_list is not None else np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
+                    e_list = np.hstack((e_list, np.random.multivariate_normal(e_shift, e_scaler).reshape((n, 1)))) if e_list is not None else np.random.multivariate_normal(np.zeros(n), e_scaler).reshape((n, 1))
                 elif e_choice == '2':
                     a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
-                    e_list = np.hstack((e_list, 1 * np.linalg.inv(self.model.R) @ np.sin(a))) if e_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
+                    e_list = np.hstack((e_list, e_shift + e_scaler @ np.sin(a))) if e_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
                 fx1_list = np.kron(x_list[:, -1], e_list[:, -1].T @ model.R)  # (1, mn) # used for integral of Theta, Xi matrix # t_lk
                 fx2_list = (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape((1, 1))  # (1, 1)
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix
@@ -91,10 +97,10 @@ class Sim:
 
                     x_list = np.hstack((x_list, y[-1, :].reshape((m, 1))))
                     if e_choice == '1':
-                        e_list = np.hstack((e_list, 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))))
+                        e_list = np.hstack((e_list, np.random.multivariate_normal(np.zeros(n), e_scaler).reshape((n, 1))))
                     elif e_choice == '2':
                         a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
-                        e_list = np.hstack((e_list, 1 * np.linalg.inv(self.model.R) @ np.sin(a)))
+                        e_list = np.hstack((e_list, e_shift + e_scaler @ np.sin(a)))
 
                     fx1_list = np.vstack((fx1_list, np.kron(x_list[:, -1].T, e_list[:, -1].T @ model.R)))  # size of (delta_idx+1, mn) after loop  # used for integral of Theta, Xi matrix
                     fx2_list = np.vstack((fx2_list, (-x_list[:, -1].T @ Q @ x_list[:, -1]).reshape((1, 1))))  # size of (delta_idx+1, 1) after loop
