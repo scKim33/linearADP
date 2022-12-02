@@ -105,10 +105,10 @@ class Sim:
                     if e_choice == '1':
                         e = 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
                     elif e_choice == '2':
-                        a = np.array([20 * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                        a = np.array([200 * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
                         e = 1 * np.linalg.inv(self.model.R) @ np.sin(a)
                     u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv + e  # (n, 1)
-                    print(u)
+                    # print(u)
                     # u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
                     #     (n, 1))  # control input after passing actuator (n, 1)
                     # u = self.clipping_u(u, clipping)  # control input constraint
@@ -129,9 +129,10 @@ class Sim:
             print(w)
             j += 1
 
-            if w_list.shape[1] >= 2:
-                if np.linalg.norm(w_list[:, -1] - w_list[:, -2]) < tol:
+            if w_list.shape[1] >= 10:
+                if np.linalg.norm(np.max(w_list[:, -10:], axis=1) - np.min(w_list[:, -10:], axis=1)) < tol:
                     print("Total iterations : {}".format(j))
+                    print(w_list[:, -1])
                     break
 
         return w_list[:, -1].reshape((num_w, 1)), cond
@@ -144,8 +145,9 @@ class Sim:
 
         j = 0
         t = 0
-        t_step_on_loop = 0.02
-        delta_idx = 3  # index jumping at t_lk
+        t_step_on_loop = 0.0001
+        delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
+        e_choice = '1'
 
         x_list = x
         u_list = None
@@ -157,7 +159,11 @@ class Sim:
             while np.linalg.matrix_rank(Pi) < num_w if Pi is not None else True:  # constructing each row of matrix Theta, Xi
                 for _ in range(delta_idx):
                     dv = (w.T @ self.dpi_dx(x_list[:, -1].reshape((m, 1)))).reshape((m, 1))
-                    e = np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
+                    if e_choice == '1':
+                        e = 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
+                    elif e_choice == '2':
+                        a = np.array([200 * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
+                        e = 1 * np.linalg.inv(self.model.R) @ np.sin(a)
                     u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv + e  # (n, 1)
                     # u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
                     #     (n, 1))  # control input after passing actuator (n, 1)
@@ -174,14 +180,15 @@ class Sim:
                 w_dot_pi = (w_list[:, 0].reshape((num_w, 1)).T @ self.pi(x_list[:, -1].reshape((m, 1)))).reshape((1, 1))
                 W_Pi = np.vstack((W_Pi, w_dot_pi)) if W_Pi is not None else w_dot_pi
             cond = np.linalg.cond(Pi)
-            print(cond)
+
             w, _, _, _ = np.linalg.lstsq(Pi, R + W_Pi)
             w_list = np.hstack((w_list, w)) if w_list is not None else w
             j += 1
 
-            if w_list.shape[1] >= 2:
-                if np.linalg.norm(w_list[:, -1] - w_list[:, -2]) < tol:
+            if w_list.shape[1] >= 10:
+                if np.linalg.norm(np.max(w_list[:, -10:], axis=1) - np.min(w_list[:, -10:], axis=1)) < tol:
                     print("Total iterations : {}".format(j))
+                    print(w_list[:, -1])
                     break
 
         return w_list[:, -1].reshape((num_w, 1)), cond

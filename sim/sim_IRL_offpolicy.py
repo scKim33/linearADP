@@ -52,6 +52,9 @@ class Sim:
         K_list.append(K)
         k = 0
 
+        x_list = None  # (m, 1)
+        u0_list = None
+
         while True:
             Q = model.Q + K_list[-1].T @ model.R @ K_list[-1]  # Q_k
 
@@ -63,8 +66,6 @@ class Sim:
             print("k = {}".format(k))
             Theta = None
             Xi = None
-            x_list = None  # (m, 1)
-            u0_list = None
             rank_saturated_count = 0
             flag = True
             theta_xx = None
