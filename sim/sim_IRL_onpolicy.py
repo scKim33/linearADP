@@ -7,9 +7,6 @@ class Sim:
                  actuator=None,
                  model=None):
         self.actuator = actuator
-        self.actuator_enable = True
-        if self.actuator is None:
-            self.actuator_enable = False
         self.model = model
         self.m = np.shape(self.model.A)[1]
         self.n = np.shape(self.model.B)[1]
@@ -21,8 +18,8 @@ class Sim:
             print('Assign the model.')
 
     def actuator_u(self, u_ctrl, enabling_index=0, t_step=0.1):
-        dyn = self.actuator.dynamics
-        if self.actuator_enable:
+        if self.actuator is not None:
+            dyn = self.actuator.dynamics
             u_act = np.array([u_ctrl[enabling_index], 0])  # u_act, u_act_dot in systems of ODE
             u_act = odeint(dyn, u_act, [0, t_step],
                            args=(u_ctrl[enabling_index],))  # only considering enabling_index element

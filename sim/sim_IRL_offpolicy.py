@@ -7,9 +7,6 @@ class Sim:
                  actuator=None,
                  model=None):
         self.actuator = actuator
-        self.actuator_enable = True
-        if self.actuator is None:
-            self.actuator_enable = False
         self.model = model
         self.m = np.shape(self.model.A)[1]
         self.n = np.shape(self.model.B)[1]
@@ -21,8 +18,8 @@ class Sim:
             print('Assign the model.')
 
     def actuator_u(self, u_ctrl, enabling_index=0, t_step=0.1):
-        dyn = self.actuator.dynamics
-        if self.actuator_enable:
+        if self.actuator is not None:
+            dyn = self.actuator.dynamics
             u_act = np.array([u_ctrl[enabling_index], 0])  # u_act, u_act_dot in systems of ODE
             u_act = odeint(dyn, u_act, [0, t_step],
                            args=(u_ctrl[enabling_index],))  # only considering enabling_index element
@@ -70,7 +67,7 @@ class Sim:
             theta_xx = None
             theta_xu = None
             delta_xx = None
-            u0_choice = '1'
+            u0_choice = '2'
 
             # while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
             while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
@@ -172,7 +169,7 @@ class Sim:
         model = self.model
         K_opt, _, _ = lqr(model.A, model.B, model.Q, model.R)
 
-        P_list, K_list, cond_list = self.iteration(x0, clipping, dyn, u0_scaler, u0_shift, tol)
+        P_list, K_list, cond_list = self.iteration(x0, clipping, dyn, u0_shift, u0_scaler, tol)
         t = 0
         x = x0
 
