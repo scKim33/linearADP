@@ -23,7 +23,7 @@ dyn = model.dynamics
 actuator = Actuator()
 u_constraint = np.array([[0 - model.u_trim[0], 1 - model.u_trim[0]],
                          [np.deg2rad(-20), np.deg2rad(20)]])
-agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
+agent = "3"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
 
 t_end = 50
 t_step = 0.02

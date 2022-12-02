@@ -71,7 +71,9 @@ class Sim:
             theta_xx = None
             theta_xu = None
             delta_xx = None
-            u0_choice = '1'
+            u0_choice = '2'
+            u0_scaler = np.diag([0.5, 0.1])
+            u0_shift = np.array([[0.5], [0]])
 
             # while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
             while np.linalg.matrix_rank(np.hstack([theta_xx, theta_xu])) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
@@ -82,7 +84,7 @@ class Sim:
                     u0_list = np.hstack((u0_list, 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1)))) if u0_list is not None else 5 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(self.model.R)).reshape((n, 1))
                 elif u0_choice == '2':
                     a = np.array([20 * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
-                    u0_list = np.hstack((u0_list, 1000 * np.linalg.inv(self.model.R) @ np.sin(a))) if u0_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
+                    u0_list = np.hstack((u0_list, u0_shift + u0_scaler @ np.sin(a))) if u0_list is not None else 1000 * np.linalg.inv(self.model.R) @ np.sin(a)
                 fx1_list = np.kron(x_list[:, -1].T, x_list[:, -1].T).reshape((1, m*m))  # (1, mm) # used for integral of theta_xx
                 fx2_list = np.kron(x_list[:, -1].T, u0_list[:, -1].T).reshape((1, m*n))  # (1, 1) # used for integral of theta_xu
                 for _ in range(delta_idx):  # delta_idx element constructs one row of Theta matrix

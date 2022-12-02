@@ -125,8 +125,6 @@ class Sim:
             w, _, _, _ = np.linalg.lstsq(Pi, R)
             # w_list = np.hstack((w_list, 0.9 * w_list[:, -1] + 0.1 * w))
             w_list = np.hstack((w_list, w))
-            print(Pi)
-            print(w)
             j += 1
 
             if w_list.shape[1] >= 10:
