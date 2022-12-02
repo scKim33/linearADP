@@ -32,10 +32,9 @@ class Sim:
 
     def iteration(self, x0, clipping, dyn, e_shift, e_scaler, tol):
         n, m = self.n, self.m
-
         model = self.model
+
         P_list = []  # P_0, P_1, ... len of k
-        P_compute = []
         K_list = []  # K_0, K_1, ... len of k+1
         cond_list = []
         P = np.zeros((m, m))
@@ -63,10 +62,7 @@ class Sim:
             rank_saturated_count = 0
             flag = True
 
-            # while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n or np.linalg.cond(Theta) > 1e2 if Theta is not None else True:  # constructing each row of matrix Theta, Xi
             while np.linalg.matrix_rank(Theta) < m * (m + 1) / 2 + m * n if Theta is not None else True:  # constructing each row of matrix Theta, Xi
-                # x_list = np.hstack((x_list, np.random.randn(m,1)))
-                # x_list = np.hstack((x_list, np.random.multivariate_normal(np.zeros(m), np.diag(np.abs(x0).squeeze())).reshape((m, 1))))
                 if x_list is not None:
                     x_list = x_list[:, -1].reshape((m, 1))
                 else:
@@ -104,56 +100,17 @@ class Sim:
                     break
                 rank = np.linalg.matrix_rank(Theta)
             cond_list.append(np.linalg.cond(Theta))
-            # # Making symmetric matrix P, and gain matrix K
-            # if flag:
-            #     idx = np.where(np.tril(np.full((m, m), 1), -1).reshape((m*m), order="F") == 1)[0]
-            #     mask = np.ones((m*m + m*n,), dtype=bool)
-            #     mask[idx] = False
-            #     Theta_aug = Theta[:, mask]
-            #     sol, _, _, _ = np.linalg.lstsq(Theta_aug, Xi)  # size of (mm + mn, 1)
-            #     P = np.zeros((m*m,))
-            #     P[mask[:-m*n]] = sol[:int(m * (m + 1) / 2)].squeeze()
-            #     P = P.reshape((m, m), order='F')    # upper triangular matrix
-            #     P = P + np.triu(P, 1).T
-            #     P_compute.append(P)
-            #     P_list.append(0.1 * P + 0.9 * P_list[-1])
-            #     # P_list.append(P)
-            #     # print(P)
-            #     K = sol[int(m * (m + 1) / 2):].reshape((n, m), order='F')
-            #     # print(K)
-            #     K_list.append(0.1 * K + 0.9 * K_list[-1])
-            #     # K_list.append(K)
-            #     if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:  # Ignore some bad cases
-            #         print("Ignoring overly diverging P, K solutions")
-            #         del P_list[-1]
-            #         del K_list[-1]
-            #         continue
-            #     k += 1
 
             if flag:
                 sol, _, _, _ = np.linalg.lstsq(Theta, Xi)  # size of (mm + mn, 1)
                 P = sol[:m * m].reshape((m, m))
-                P_compute.append(P)
                 P_list.append(P)
-                # P_list.append(0.01 * P + 0.99 * P_list[-1])
                 K = sol[m * m:].reshape((n, m), order='F')
-                # print(K)
-                # K_list.append(0.01 * K + 0.99 * K_list[-1])
                 K_list.append(K)
-                # if np.max(abs(P_list[-1])) > constraint_P or np.max(abs(K_list[-1])) > constraint_K and len(K_list) >= 2:  # Ignore some bad cases
-                #     print("Ignoring overly diverging P, K solutions")
-                #     del P_list[-1]
-                #     del K_list[-1]
-                #     continue
-                print(P)
                 k += 1
 
-                if len(P_compute) >= 10:
-                    P_avg = np.mean(np.stack(P_compute[-10:], axis=0), axis=0)
-                    print(np.linalg.norm(
-                        np.max(np.stack(P_compute[-10:], axis=0)) - np.min(np.stack(P_compute[-10:], axis=0))))
-                    if np.linalg.norm(np.max(np.stack(P_compute[-10:], axis=0)) - np.min(
-                            np.stack(P_compute[-10:], axis=0))) < tol:
+                if len(P_list) >= 10:
+                    if np.linalg.norm(np.max(np.stack(P_list[-10:], axis=0)) - np.min(np.stack(P_list[-10:], axis=0))) < tol:
                         print('Converged in', k, 'iteration')
                         print("P : {}".format(P))
                         print("K : {}".format(K))
@@ -161,8 +118,7 @@ class Sim:
         return P_list, K_list, cond_list
 
     def sim(self, t_end, t_step, dyn, x0, x_ref, e_shift, e_scaler, clipping=None, tol=1e-3):
-        m = self.m
-        n = self.n
+        n, m = self.n, self.m
         model = self.model
         K_opt, _, _ = lqr(model.A, model.B, model.Q, model.R)
 
