@@ -77,10 +77,10 @@ class Sim:
 
         j = 0
         t = 0
-        t_step_on_loop = 0.0001
+        t_step_on_loop = 0.001
         delta_idx = 10
         # delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
-        e_choice = '2'
+        e_choice = '1'
 
         x_list = None
         u_list = None

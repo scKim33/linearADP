@@ -37,8 +37,8 @@ agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
 
 # scaler = np.diag([0.5, 0.3])
 # shift = np.array([[0.5], [0]])
-scaler = np.diag([1, 1])
-shift = np.array([[0], [0]])
+scaler = np.diag([0.1, 0.01])
+shift = np.array([[0], [0.00]])
 
 
 t_end = 50
