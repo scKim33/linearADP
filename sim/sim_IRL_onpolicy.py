@@ -109,8 +109,8 @@ class Sim:
                 K_list.append(K)
                 k += 1
 
-                if len(P_list) >= 10:
-                    if np.linalg.norm(np.max(np.stack(P_list[-10:], axis=0)) - np.min(np.stack(P_list[-10:], axis=0))) < tol:
+                if len(P_list) >= 2:
+                    if np.linalg.norm(P_list[-2] - P_list[-1]) < tol:
                         print('Converged in', k, 'iteration')
                         print("P : {}".format(P))
                         print("K : {}".format(K))

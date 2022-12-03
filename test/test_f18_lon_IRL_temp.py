@@ -35,10 +35,10 @@ u_constraint = np.array([[0, 1],
                          [np.deg2rad(-20), np.deg2rad(20)]])
 agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
 
-# scaler = np.diag([0.5, 0.3])
-# shift = np.array([[0.5], [0]])
-scaler = np.diag([0.1, 0.01])
-shift = np.array([[0], [0.00]])
+scaler = np.diag([0.5, 0.3])
+shift = np.array([[0.5], [0]])
+# scaler = np.diag([0.1, 0.01])
+# shift = np.array([[0], [0.00]])
 
 
 t_end = 50
@@ -51,10 +51,10 @@ if agent == "1":
     x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=None, iteration='pi', tol=1e1)
 if agent == "2":
     sim = Sim_on_policy_Kleinmann(actuator=None, model=model)
-    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=None, tol=6e2)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=None, tol=3e2)
 elif agent == "3":
     sim = Sim_off_policy_Kleinmann(actuator=None, model=model)
-    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, u0_shift=shift, u0_scaler=scaler, clipping=None, tol=6e2)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, u0_shift=shift, u0_scaler=scaler, clipping=None, tol=3e2)
 
 # Plot the results
 x_ref_for_plot = [model.x_trim[0],

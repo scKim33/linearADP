@@ -11,12 +11,12 @@ from control import lqr
 # np.random.seed(1)
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
-# x0 = np.array([[4],
-#                [2]])
+x0 = np.array([[4],
+               [2]])
 # x0 = np.array([[3],
 #                [-3]])
-x0 = np.array([[-3],
-               [-5]])
+# x0 = np.array([[-3],
+#                [-5]])
 x_ref = np.array([[0],
                   [0]])
 
@@ -26,7 +26,7 @@ actuator = Actuator()
 u_constraint = np.array([[-20, 20]])
 agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
 
-scaler = np.diag([1])
+scaler = np.diag([0.1])
 shift = np.array([[0]])
 
 t_end = 5
@@ -36,7 +36,7 @@ tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 # Do simulation
 if agent == "1":
     sim = Sim_on_policy_IRL(actuator=actuator, model=model)
-    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=u_constraint, iteration='pi', tol=1e0)
+    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=u_constraint, iteration='vi', tol=1e-1)
 if agent == "2":
     sim = Sim_on_policy_Kleinmann(actuator=actuator, model=model)
     x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=u_constraint, tol=5e-1)
