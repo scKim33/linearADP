@@ -1,7 +1,5 @@
 import numpy as np
 from scipy.integrate import odeint
-from model.f18_lon import f18_lon
-from model.actuator import Actuator
 
 class Sim:
     def __init__(self,
@@ -79,10 +77,10 @@ class Sim:
 
         j = 0
         t = 0
-        t_step_on_loop = 0.001
+        t_step_on_loop = 0.0001
         delta_idx = 10
         # delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
-        e_choice = '1'
+        e_choice = '2'
 
         x_list = None
         u_list = None
@@ -100,9 +98,10 @@ class Sim:
                     x_list = x_list[:, -1].reshape((m, 1))
                 else:
                     x_list = x0
+                print('x_list{}'.format(x_list))
                 # x_list = np.diag(np.random.choice([-1, 1], m)) @ np.diag(np.random.normal(1, 1, m)) @ x0
                 if e_choice == '1':
-                    e = 0.1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
+                    e = 1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
                     # e = 1 * np.random.multivariate_normal(e_shift.reshape((n,)), e_scaler).reshape((n, 1))
                 elif e_choice == '2':
                     a = np.array([20 * (i + 1) * np.pi * t + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
@@ -110,7 +109,7 @@ class Sim:
                 for _ in range(delta_idx):
                     dv = (w_list[:, -1].reshape((num_w, 1)).T @ self.dpi_dx(x_list[:, -1].reshape((m, 1)))).reshape((m, 1))
                     u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv + e  # (n, 1)
-
+                    # print("u", u)
                     y = odeint(dyn, x_list[:, -1].reshape(m,), [t, t + t_step_on_loop], args=(u.reshape((n,)),))
                     x_list = np.hstack((x_list, y[-1, :].reshape((m, 1))))
                     u_list = np.hstack((u_list, u)) if u_list is not None else u
@@ -124,23 +123,24 @@ class Sim:
                     rank_saturated_count += 1
                 if rank_saturated_count >= 5:
                     flag = False
-                    print("Rank saturated")
+                    print("Rank saturated, rank =", rank)
                     break
                 rank = np.linalg.matrix_rank(Pi)
             cond = np.linalg.cond(Pi)
-
+            print("PI", Pi)
             if flag:
                 w, _, _, _ = np.linalg.lstsq(Pi, R)
                 w_list = np.hstack((w_list, w))
+                print('w{}'.format(w_list[:, -1]))
                 j += 1
 
-            if w_list.shape[1] >= 10:
-                if np.linalg.norm(np.max(w_list[:, -10:], axis=1) - np.min(w_list[:, -10:], axis=1)) < tol:
+            if w_list.shape[1] >= 3:
+                if np.linalg.norm(w_list[:, -2] - w_list[:, -1]) < tol:
                     print('Converged in', j, 'iteration')
-                    print(w_list[:, -1])
+                    print('w{}'.format(w_list[:, -1]))
                     break
 
-        return w_list, cond
+        return w_list[:, -1].reshape((num_w, 1)), cond
 
     def value_iteration(self, dyn, x, w, e_shift, e_scaler, clipping, tol):
         n, m = self.n, self.m
@@ -210,13 +210,13 @@ class Sim:
                 print(w)
                 j += 1
 
-            if w_list.shape[1] >= 10:
-                if np.linalg.norm(np.max(w_list[:, -10:], axis=1) - np.min(w_list[:, -10:], axis=1)) < tol:
+            if w_list.shape[1] >= 2:
+                if np.linalg.norm(w_list[:, -2] - w_list[:, -1]) < tol:
                     print('Converged in', j, 'iteration')
-                    print(w_list[:, -1])
+                    print('w{}'.format(w_list[:, -1]))
                     break
 
-        return w_list, cond
+        return w_list[:, -1].reshape((num_w, 1)), cond
 
     def sim(self, t_end, t_step, dyn, x0, x_ref, e_shift, e_scaler, clipping=None, iteration='pi', tol='1e3'):
         n, m = self.n, self.m
@@ -227,23 +227,24 @@ class Sim:
         x = x0
         x_hist = x0  # (m, 1)
         u_hist = np.zeros((n, 1))  # (n, 1)
-        w_hist = 0.0001 * np.random.randn(num_w, 1)
+        w_hist = 0.00 * np.random.randn(num_w, 1)
         cond_list = []
-
-        if iteration == "pi":
-            w_hist, cond = self.policy_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)),
-                                            e_shift, e_scaler, clipping, tol)
-        elif iteration == "vi":
-            w_hist, cond = self.value_iteration(dyn, x_hist[:, -1].reshape((m, 1)), w_hist[:, -1].reshape((num_w, 1)),
-                                           e_shift, e_scaler, clipping, tol)
-
-        cond_list.append(cond)
+        w_fixed = False
 
         while True:
             if np.isclose(t, t_end):
                 break
-
-            dv = (w_hist[:, -1].reshape((1, num_w)) @ self.dpi_dx(x_hist[:, -1].reshape((m, 1)))).reshape((m, 1))
+            if w_fixed is False:
+                if iteration == "pi":
+                    w, cond = self.policy_iteration(dyn, x_hist[:, -1].reshape((m, 1)),
+                                                         w_hist[:, -1].reshape((num_w, 1)),
+                                                         e_shift, e_scaler, clipping, tol)
+                elif iteration == "vi":
+                    w, cond = self.value_iteration(dyn, x_hist[:, -1].reshape((m, 1)),
+                                                        w_hist[:, -1].reshape((num_w, 1)),
+                                                        e_shift, e_scaler, clipping, tol)
+                cond_list.append(cond)
+            dv = (w.T @ self.dpi_dx(x_hist[:, -1].reshape((m, 1)))).reshape((m, 1))
             u = -0.5 * np.linalg.inv(model.R) @ model.B.T @ dv  # (n, 1)
             u = self.actuator_u(u.reshape((n,)), enabling_index=0, t_step=0.1).reshape(
                 (n, 1))  # control input after passing actuator (n, 1)
@@ -253,7 +254,11 @@ class Sim:
             x = y[-1, :].reshape((m, 1))  # (m, 1)
             x_hist = np.hstack((x_hist, x))
             u_hist = np.hstack((u_hist, u))
-            # w_hist = np.hstack((w_hist, w))
+            w_hist = np.hstack((w_hist, w))
+
+            if w_fixed is False and np.linalg.norm(w_hist[:, -2] - w_hist[:, -1]) < tol:
+                print('w fixed at t=', t)
+                w_fixed = True
 
             t = t + t_step
         return x_hist, u_hist, w_hist, cond_list  # (m, time_seq), (n, time_seq)

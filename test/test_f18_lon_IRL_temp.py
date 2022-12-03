@@ -35,8 +35,11 @@ u_constraint = np.array([[0, 1],
                          [np.deg2rad(-20), np.deg2rad(20)]])
 agent = "1"   # 1."on-IRL" 2."on-Kleinmann", 3."off-Kleinmann"
 
-scaler = np.diag([0.5, 0.3])
-shift = np.array([[0.5], [0]])
+# scaler = np.diag([0.5, 0.3])
+# shift = np.array([[0.5], [0]])
+scaler = np.diag([1, 1])
+shift = np.array([[0], [0]])
+
 
 t_end = 50
 t_step = 0.02
