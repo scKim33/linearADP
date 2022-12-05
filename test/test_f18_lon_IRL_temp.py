@@ -1,21 +1,24 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from model.f18_lon import f18_lon
 from model.actuator import Actuator
 from sim.sim_IRL_onpolicy import Sim as Sim_on_policy_Kleinmann
 from sim.sim_IRL_offpolicy import Sim as Sim_off_policy_Kleinmann
 from sim.sim_IRL_temp import Sim as Sim_on_policy_IRL
-from utils import *
+from utils import plot, plot_w, plot_cond, plot_P, plot_K
 from control import lqr
 
-# np.random.seed(0)
+np.random.seed(0)
+x0 = np.random.randn(4, 1)
+x0[1:] = np.deg2rad(x0[1:])
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
-x0 = np.array([[177.02],
-               [np.deg2rad(3.431)],
-               [np.deg2rad(-1.09*1e-2)],
-               [np.deg2rad(5.8*1e-3)]])\
-     - f18_lon().x_trim.reshape((4, 1)) # x_0 setting in progress report 1
+# x0 = np.array([[177.02],
+#                [np.deg2rad(3.431)],
+#                [np.deg2rad(-1.09*1e-2)],
+#                [np.deg2rad(5.8*1e-3)]])\
+#      - f18_lon().x_trim.reshape((4, 1)) # x_0 setting in progress report 1
 # x0 = np.array([[187.02],
 #                [np.deg2rad(0.41)],
 #                [np.deg2rad(9.09*1e-3)],
@@ -48,10 +51,10 @@ tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
 # Do simulation
 if agent == "1":
     sim = Sim_on_policy_IRL(actuator=None, model=model)
-    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=None, iteration='pi', tol=1e1)
+    x_hist, u_hist, w_hist, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=None, iteration='vi', tol=1e1)
 if agent == "2":
     sim = Sim_on_policy_Kleinmann(actuator=None, model=model)
-    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=None, tol=3e2)
+    x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, e_shift=shift, e_scaler=scaler, clipping=None, tol=1e0)
 elif agent == "3":
     sim = Sim_off_policy_Kleinmann(actuator=None, model=model)
     x_hist, u_hist, P_list, K_list, cond_list = sim.sim(t_end, t_step, dyn, x0, x_ref=model.x_ref, u0_shift=shift, u0_scaler=scaler, clipping=None, tol=3e2)
@@ -69,7 +72,10 @@ u_hist = u_hist + model.u_trim.reshape((2, 1))
 u_hist[1, :] = np.rad2deg(u_hist[1, :])
 
 if agent == "1":
-    plot(x_hist, u_hist, tspan, x_ref_for_plot, u_ref_for_plot, type='plot', x_shape=[2, 2], u_shape=[2, 1], x_label=['$V$ (m / s)', '$\\alpha$ (deg)', '$q$ (deg / s)', '$\gamma$ (deg)'], u_label=['$\delta_T$', '$\delta_e$ (deg)'])
+    plot(x_hist, u_hist, tspan, x_ref_for_plot, u_ref_for_plot, type='plot',
+         x_shape=[2, 2], u_shape=[2, 1],
+         x_label=['$V$ (m / s)', '$\\alpha$ (deg)', '$q$ (deg / s)', '$\\gamma$ (deg)'],
+         u_label=['$\\delta_T$', '$\\delta_e$ (deg)'])
     plot_w(w_hist, tspan)
     plot_cond(cond_list)
     plt.show()
@@ -85,7 +91,10 @@ elif agent == "2" or "3":
     #            [3.18544776e-02, 3.99874533e+00, 8.96117708e-02, 4.60378587e+00],
     #            [5.04540680e-01, 5.04121432e+02, 4.60378587e+00, 5.18369240e+02]])
 
-    plot(x_hist, u_hist, tspan, x_ref_for_plot, u_ref_for_plot, type='plot', x_shape=[2, 2], u_shape=[2, 1], x_label=['$V$ (m / s)', '$\\alpha$ (deg)', '$q$ (deg / s)', '$\gamma$ (deg)'], u_label=['$\delta_T$', '$\delta_e$ (deg)'])
+    plot(x_hist, u_hist, tspan, x_ref_for_plot, u_ref_for_plot, type='plot',
+         x_shape=[2, 2], u_shape=[2, 1],
+         x_label=['$V$ (m / s)', '$\\alpha$ (deg)', '$q$ (deg / s)', '$\\gamma$ (deg)'],
+         u_label=['$\\delta_T$', '$\\delta_e$ (deg)'])
     plot_P(P_list)
     plot_K(K_list)
     plot_cond(cond_list)
