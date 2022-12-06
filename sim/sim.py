@@ -30,7 +30,7 @@ def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=Non
     u_hist = []
     while True:
         if "PID" in controller.keys():
-            u_ctrl = controller["PID"](x[0], dt=t_step)
+            u_ctrl = controller["PID"](x[0], dt=t_step)[0]
         elif "LQR" in controller.keys():
             u_ctrl = controller["LQR"].dot(np.reshape(x - x_ref, (num_x, 1))).reshape(num_u,)
         elif "LQI" in controller.keys():
@@ -49,7 +49,7 @@ def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=Non
             for u_i, constraint, i in zip(u_ctrl, clipping, range(num_u)):
                 u_ctrl[i] = np.clip(u_i, constraint[0], constraint[1])  # constraint of u
         if u_is_scalar:  # for scalar u
-            u_ctrl = np.asscalar(u_ctrl)
+            u_ctrl = u_ctrl.item()
 
         x_hist = np.append(x_hist, x)
         u_hist = np.append(u_hist, u_ctrl)
@@ -58,7 +58,7 @@ def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=Non
 
         if np.isclose(t, t_end):
             x_hist = x_hist.reshape(-1, len(x))
-            u_hist = u_hist.reshape(-1, len(u_ctrl))
+            u_hist = u_hist.reshape(-1, num_u)
             break
         t = t + t_step
     return x_hist, u_hist

@@ -19,10 +19,10 @@ class f18_lon:
         self.x_trim = loadmat('../dat/f18_lin_data.mat')['x_trim_lon'].squeeze()
         self.u_trim = loadmat('../dat/f18_lin_data.mat')['u_trim'].squeeze()[0:2]
         # x_ref default value : [0 0 0 0]
-        perturbation = np.array([np.random.normal(0, 0.1 * self.x_trim[0]),
-                                 np.random.normal(0, 0.1 * self.x_trim[1]),
-                                 np.random.normal(0, np.deg2rad(2)),
-                                 np.random.normal(0, np.deg2rad(2))])
+        perturbation = np.array([[np.random.normal(0, 0.1 * self.x_trim[0])],
+                                 [np.random.normal(0, 0.1 * self.x_trim[1])],
+                                 [np.random.normal(0, np.deg2rad(2))],
+                                 [np.random.normal(0, np.deg2rad(2))]])
         # x0 default value : perturbation
         if x0 is not None:
             self.x0 = x0

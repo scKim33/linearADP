@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import odeint
 from control import lqr
+import time
 
 class Sim:
     def __init__(self,
@@ -49,9 +50,10 @@ class Sim:
         # delta_idx = int(round(np.random.choice(range(30, 100))))  # index jumping at t_lk
         x_list = None  # (m, 1)
         e_list = None
-        e_choice = '1'
+        e_choice = '2'
 
         while True:
+            start = time.time()
             Q = model.Q + K_list[-1].T @ model.R @ K_list[-1]   # Q_k
 
             rank = 0
@@ -69,7 +71,7 @@ class Sim:
                     x_list = x0
 
                 if e_choice == '1':
-                    e_list = 0.1 * np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
+                    e_list = np.random.multivariate_normal(np.zeros(n), np.linalg.inv(model.R)).reshape((n, 1))
                     # e_list = np.random.multivariate_normal(e_shift.reshape((n,)), e_scaler).reshape((n, 1))
                 elif e_choice == '2':
                     a = np.array([20 * (i + 1) * np.pi * t_lk + 0.5 * i * np.pi for i in range(n)]).reshape((n, 1))
@@ -111,18 +113,19 @@ class Sim:
 
                 if len(P_list) >= 2:
                     if np.linalg.norm(P_list[-2] - P_list[-1]) < tol:
+                        end = time.time()
                         print('Converged in', k, 'iteration')
                         print("P : {}".format(P))
                         print("K : {}".format(K))
                         break
-        return P_list, K_list, cond_list
+        return P_list, K_list, cond_list, end - start
 
     def sim(self, t_end, t_step, dyn, x0, x_ref, e_shift, e_scaler, clipping=None, tol=1e-3):
         n, m = self.n, self.m
         model = self.model
         K_opt, _, _ = lqr(model.A, model.B, model.Q, model.R)
 
-        P_list, K_list, cond_list = self.iteration(x0, clipping, dyn, e_shift, e_scaler, tol)
+        P_list, K_list, cond_list, calculation_time = self.iteration(x0, clipping, dyn, e_shift, e_scaler, tol)
         t = 0
         x = x0
 
@@ -145,4 +148,4 @@ class Sim:
             u_hist = np.hstack((u_hist, u))
 
             t = t + t_step
-        return x_hist, u_hist, P_list, K_list, cond_list  # (m, time_seq), (n, time_seq)
+        return x_hist, u_hist, P_list, K_list, cond_list, calculation_time  # (m, time_seq), (n, time_seq)

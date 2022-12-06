@@ -110,7 +110,7 @@ class dc_motor:
             self.x_ref = x_ref
         else:
             self.x_ref = np.zeros(2)
-        noise = 3 * np.random.randn(2)
+        noise = 3 * np.random.randn(2, 1)
         # x0 default value : noise
         if x0 is not None:
             self.x0 = x0

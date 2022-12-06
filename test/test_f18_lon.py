@@ -6,7 +6,6 @@ from control import lqr
 from model.f18_lon import f18_lon
 from model.actuator import Actuator
 from sim.sim import sim
-from sim.sim_IRL import sim_IRL
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
@@ -106,5 +105,6 @@ plt.plot(tspan, np.rad2deg(model.u_trim[1]) * np.ones(len(tspan)), 'r--', linewi
 plt.xlim([tspan[0], tspan[-1]])
 plt.grid()
 plt.ylabel(r'$\delta_e$ (deg)')
+plt.xlabel('Time (sec)')
 
 plt.show()

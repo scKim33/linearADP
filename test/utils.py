@@ -18,6 +18,7 @@ def plot(x_hist, u_hist, tspan, x_ref, u_ref, type='plot', x_shape=None, u_shape
         plt.xlim([tspan[0], tspan[-1]])
         plt.ylabel(r'{}'.format(x_label[i]))
         plt.title('State trajectory')
+        plt.xlabel('Time')
         plt.legend(('State', 'Reference'))
 
     plt.figure()
