@@ -2,9 +2,9 @@ import numpy as np
 
 from model.fixed_wing_lon import fixed_wing_lon
 from model.actuator import Actuator
-from sim.sim_IRL_onpolicy import Sim as Sim_on_policy_Kleinmann
-from sim.sim_IRL_offpolicy import Sim as Sim_off_policy_Kleinmann
-from sim.sim_IRL_temp import Sim as Sim_on_policy_IRL
+from sim.sim_onpolicy_Kleinmann import Sim as Sim_on_policy_Kleinmann
+from sim.sim_offpolicy_Kleinmann import Sim as Sim_off_policy_Kleinmann
+from sim.sim_IRL import Sim as Sim_on_policy_IRL
 from utils import *
 from control import lqr
 
