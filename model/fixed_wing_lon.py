@@ -2,7 +2,7 @@ import numpy as np
 from scipy.io import loadmat
 
 
-class f18_lon:
+class fixed_wing_lon:
     def __init__(
             self,
             x0=None,
@@ -14,15 +14,15 @@ class f18_lon:
             Qa=np.diag([1, 100, 10, 100, 1, 100]),
             Ra=np.diag([1e2, 1e6])
     ):
-        self.name = 'f18_lon'
+        self.name = 'fixed_wing'
         # trim condition states, control inputs
-        self.x_trim = loadmat('../dat/f18_lin_data.mat')['x_trim_lon'].squeeze()
-        self.u_trim = loadmat('../dat/f18_lin_data.mat')['u_trim'].squeeze()[0:2]
+        self.x_trim = loadmat('../dat/lin_data.mat')['x_trim_lon'].squeeze()
+        self.u_trim = np.array([loadmat('../dat/lin_data.mat')['delt_trim'].item(), 0])
         # x_ref default value : [0 0 0 0]
-        perturbation = np.array([[np.random.normal(0, 0.1 * self.x_trim[0])],
-                                 [np.random.normal(0, 0.1 * self.x_trim[1])],
-                                 [np.random.normal(0, np.deg2rad(2))],
-                                 [np.random.normal(0, np.deg2rad(2))]])
+        perturbation = np.array([np.random.normal(0, 0.1 * self.x_trim[0]),
+                                 np.random.normal(0, 0.1 * self.x_trim[1]),
+                                 np.random.normal(0, np.deg2rad(2)),
+                                 np.random.normal(0, np.deg2rad(2))])
         # x0 default value : perturbation
         if x0 is not None:
             self.x0 = x0
@@ -33,7 +33,7 @@ class f18_lon:
         else:
             self.x_ref = np.zeros(self.x0.shape)
         # state-space matrices
-        self.mat = loadmat('../dat/f18_lin_data.mat')
+        self.mat = loadmat('../dat/lin_data.mat')
         self.A = self.mat['Alon']
         self.B = self.mat['Blon']
         self.C = C

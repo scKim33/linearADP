@@ -3,7 +3,7 @@ from scipy.integrate import odeint
 from model.actuator import Actuator
 
 
-def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=None, u_is_scalar=False):
+def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=None, u_is_scalar=False, actuator_status=False):
 
     """
     Model simulation
@@ -30,16 +30,16 @@ def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=Non
     u_hist = []
     while True:
         if "PID" in controller.keys():
-            u_ctrl = controller["PID"](x[0], dt=t_step)
+            u_ctrl = controller["PID"](x[0], dt=t_step)[0]
         elif "LQR" in controller.keys():
-            u_ctrl = controller["LQR"].dot(np.reshape(x - x_ref, (num_x, 1))).squeeze()
+            u_ctrl = controller["LQR"].dot(np.reshape(x - x_ref, (num_x, 1))).reshape(num_u,)
         elif "LQI" in controller.keys():
-            u_ctrl = controller["LQI"].dot(np.reshape(x - np.block([x_ref, np.zeros(model.C.shape[0])]), (num_x, 1))).squeeze()
-        if u_act is None:
-            u_act = np.array([u_ctrl[0], 0])   # set u_actuator initial condition at first time step
-        u_act = odeint(actuator.dynamics, u_act, [t, t + t_step], args=(u_ctrl[0],))
-        u_act = u_act[-1, :]    # take u_act at (t + t_step)
-        u_ctrl[0] = u_act[0]    # only considering throttle actuator effect
+            u_ctrl = controller["LQI"].dot(np.reshape(x - np.block([x_ref, np.zeros(model.C.shape[0])]), (num_x, 1))).reshape(num_u,)
+        if actuator_status:
+            u_act = np.array([u_ctrl[0], 0]) # u_act, u_act_dot in systems of ODE
+            u_act = odeint(actuator.dynamics, u_act, [t, t + 0.1], args=(u_ctrl[0],))
+            u_act = u_act[-1, :]    # take u_act at (t + t_step)
+            u_ctrl[0] = u_act[0]    # only considering throttle actuator effect
 
         # If we want to give a constraint of u
         if clipping is not None:
@@ -49,7 +49,7 @@ def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=Non
             for u_i, constraint, i in zip(u_ctrl, clipping, range(num_u)):
                 u_ctrl[i] = np.clip(u_i, constraint[0], constraint[1])  # constraint of u
         if u_is_scalar:  # for scalar u
-            u_ctrl = np.asscalar(u_ctrl)
+            u_ctrl = u_ctrl.item()
 
         x_hist = np.append(x_hist, x)
         u_hist = np.append(u_hist, u_ctrl)
@@ -57,6 +57,8 @@ def sim(t_end, t_step, model, actuator, dyn, x0, controller, x_ref, clipping=Non
         x = y[-1, :]    # take x at (t + t_step)
 
         if np.isclose(t, t_end):
+            x_hist = x_hist.reshape(-1, len(x))
+            u_hist = u_hist.reshape(-1, num_u)
             break
         t = t + t_step
-    return x_hist, np.reshape(u_hist, (num_u, -1), order='F').squeeze()
+    return x_hist, u_hist

@@ -3,25 +3,29 @@ import matplotlib.pyplot as plt
 from simple_pid import PID
 from control import lqr
 
-from model.scalar import antenna, pendulum
-from sim import sim
+from model.scalar import pendulum, dc_motor
+from model.actuator import Actuator
+from sim.sim import sim
 
 # Initial value and simulation time setting
 # If needed, fill x0, x_ref, or other matrices
-x0 = None
+x0 = np.array([0, np.deg2rad(5.279)])
+# x0 = None
 x_ref = None
 u_constraint = np.array([[-20, 20]])
 model = pendulum(x0=x0, x_ref=x_ref)
-t_end = 50
+
+actuator = Actuator()
+t_end = 100
 t_step = 0.1
 tspan = np.linspace(0, t_end, int(t_end / t_step) + 1)
-agent = "LQR" # choose a controller from ["PID", "LQR", "LQI"]
+agent = "PID" # choose a controller from ["PID", "LQR", "LQI"]
 
 if agent == "PID":
     # PID controller setting
-    Kp = 10
-    Ki = 1
-    Kd = 10
+    Kp = 1
+    Ki = 0
+    Kd = 0
     ctrl = {"PID": PID(Kp, Ki, Kd, setpoint=model.x_ref)}
     # simulation condition -> set dt equal to simulation time step
     # if not, pid takes value as real time step
@@ -47,10 +51,9 @@ else:
     raise ValueError("Invalid agent name")
 
 # Do simulation
-x_hist, u_hist = sim(t_end, t_step, model, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint)
-x_hist = x_hist.reshape(len(tspan), len(x0))
+x_hist, u_hist = sim(t_end, t_step, model, actuator, dyn, x0, controller=ctrl, x_ref=model.x_ref, clipping=u_constraint, actuator_status=False)
 
-# Plot the results
+#Plot the results
 plt.figure()
 plt.subplot(2, 1, 1)
 plt.plot(tspan, np.rad2deg(x_hist[:, 0]), 'k-', linewidth=1.2)
@@ -70,7 +73,7 @@ plt.ylim([-2, 2])
 plt.grid()
 plt.ylabel(r'$\omega$ (deg / s)')
 plt.xlabel('Time (sec)')
-plt.legend()
+plt.legend(('State', 'Reference'))
 
 plt.figure()
 plt.plot(tspan, u_hist, 'b-', linewidth=1.2)
@@ -80,3 +83,36 @@ plt.ylabel(r'Torque (N$\cdot$m)')
 plt.title('Control trajectory')
 
 plt.show()
+
+# plt.figure()
+# plt.subplot(2, 1, 1)
+# plt.scatter(tspan, x_hist[:, 0], s=15, c='k', marker='x', linewidth=1.2)
+# plt.plot(tspan, model.x_ref[0] * np.ones(len(tspan)), 'r--', linewidth=1.2)
+# plt.xlim([tspan[0], tspan[-1]])
+# # plt.ylim([-2, 6])
+# plt.grid()
+# plt.ylabel(r'x1')
+# plt.title('State trajectory')
+# plt.legend(('State', 'Reference'))
+#
+# plt.subplot(2, 1, 2)
+# plt.scatter(tspan, x_hist[:, 1], s=15, c='k', marker='x', linewidth=1.2)
+# plt.plot(tspan, model.x_ref[1] * np.ones(len(tspan)), 'r--', linewidth=1.2)
+# plt.xlim([tspan[0], tspan[-1]])
+# # plt.ylim([-2, 6])
+# plt.grid()
+# plt.ylabel(r'x2')
+# plt.xlabel('Time (sec)')
+# plt.legend(('State', 'Reference'))
+#
+# plt.figure()
+# plt.scatter(tspan, u_hist, s=15, c='b', marker='x', linewidth=1.2)
+# plt.plot(tspan, np.zeros(len(tspan)), 'r--', linewidth=1.2, label='reference')
+# plt.legend()
+# plt.xlim([tspan[0], tspan[-1]])
+# # plt.ylim([-1, 0.2])
+# plt.grid()
+# plt.ylabel(r'u')
+# plt.title('Control trajectory')
+#
+# plt.show()
